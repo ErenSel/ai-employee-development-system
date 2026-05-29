@@ -180,7 +180,7 @@ Priority:    Medium
 ## Şu Anki Durum
 
 - [x] Faz 0 — Solution kurulumu
-- [ ] Faz 1 — Domain model
+- [x] Faz 1 — Domain model
 - [ ] Faz 2 — Contracts / DTO
 - [ ] Faz 3 — Application interfaces
 - [ ] Faz 4 — Mock repositories
