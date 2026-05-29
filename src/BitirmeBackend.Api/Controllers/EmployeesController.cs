@@ -9,9 +9,13 @@ namespace BitirmeBackend.Api.Controllers;
 public class EmployeesController : BaseController
 {
     private readonly IEmployeeService _employeeService;
+    private readonly IAssessmentService _assessmentService;
 
-    public EmployeesController(IEmployeeService employeeService) =>
+    public EmployeesController(IEmployeeService employeeService, IAssessmentService assessmentService)
+    {
         _employeeService = employeeService;
+        _assessmentService = assessmentService;
+    }
 
     [Authorize(Policy = "HrOrManager")]
     [HttpGet]
@@ -55,6 +59,15 @@ public class EmployeesController : BaseController
     {
         var result = await _employeeService.UpdateEmployeeAsync(id, request);
         return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    [Authorize(Policy = "HrOrManager")]
+    [HttpGet("{id:int}/assessments")]
+    public async Task<IActionResult> GetAssessments(int id,
+        [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _assessmentService.GetEmployeeAssessmentsAsync(id, pageNumber, pageSize);
+        return Ok(result);
     }
 
     [Authorize(Policy = "HrOrManager")]
