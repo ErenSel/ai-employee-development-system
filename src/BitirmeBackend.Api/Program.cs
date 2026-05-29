@@ -3,6 +3,7 @@ using BitirmeBackend.Api.Middleware;
 using BitirmeBackend.Application.Interfaces;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
+using BitirmeBackend.Application.Services;
 using BitirmeBackend.Infrastructure.ExternalServices;
 using BitirmeBackend.Infrastructure.MockRepositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -64,7 +65,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly",    p => p.RequireRole("Admin"));
+    options.AddPolicy("HrOrManager", p => p.RequireRole("HR", "Manager"));
+    options.AddPolicy("EmployeeOnly", p => p.RequireRole("Employee"));
+    options.AddPolicy("Authenticated", p => p.RequireAuthenticatedUser());
+});
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
@@ -102,6 +109,10 @@ if (!builder.Environment.IsProduction())
     builder.Services.AddSingleton<IMlPredictionClient, FakeMlPredictionClient>();
 
 builder.Services.AddScoped<IHealthService, HealthService>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ── Build ──────────────────────────────────────────────────────────────────────
 var app = builder.Build();
