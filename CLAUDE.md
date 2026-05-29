@@ -186,7 +186,7 @@ Priority:    Medium
 - [x] Faz 4 — Mock repositories
 - [x] Faz 5 — API temel ayarları
 - [x] Faz 6 — Authentication
-- [ ] Faz 7 — Employee API
+- [x] Faz 7 — Employee API
 - [ ] Faz 8 — Assessment API
 - [ ] Faz 9 — ML Service entegrasyonu
 - [ ] Faz 10 — Action Plan generation

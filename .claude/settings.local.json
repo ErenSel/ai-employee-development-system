@@ -3,7 +3,8 @@
     "allow": [
       "Bash(ls \"C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\docs\\\\\")",
       "PowerShell($proc = Start-Process -FilePath \"dotnet\" -ArgumentList \"run --project src\\\\BitirmeBackend.Api\" -WorkingDirectory \"C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\bitirme-backend\" -PassThru -WindowStyle Hidden; Start-Sleep -Seconds 5; try { $resp = Invoke-RestMethod -Uri \"http://localhost:5000/api/health\" -ErrorAction Stop; Write-Output \"Health OK: $\\($resp | ConvertTo-Json -Compress\\)\" } catch { try { $resp2 = Invoke-RestMethod -Uri \"http://localhost:5271/api/health\" -ErrorAction Stop; Write-Output \"Health OK on 5271: $\\($resp2 | ConvertTo-Json -Compress\\)\" } catch { Write-Output \"Could not reach health endpoint: $_\" } }; $proc.Kill\\(\\))",
-      "PowerShell(cd \"C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\bitirme-backend\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\bitirme-backend\"; dotnet run --project src\\\\BitirmeBackend.Api 2>&1 }; Start-Sleep -Seconds 10; $output = Receive-Job $job; Write-Output \"=== App Output ===\"; $output | Select-Object -First 20; Stop-Job $job; Remove-Job $job)"
+      "PowerShell(cd \"C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\bitirme-backend\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\bitirme-backend\"; dotnet run --project src\\\\BitirmeBackend.Api 2>&1 }; Start-Sleep -Seconds 10; $output = Receive-Job $job; Write-Output \"=== App Output ===\"; $output | Select-Object -First 20; Stop-Job $job; Remove-Job $job)",
+      "PowerShell(Set-Location \"$env:TEMP\\\\hashtest\"; dotnet run 2>&1)"
     ]
   }
 }

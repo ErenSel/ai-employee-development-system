@@ -84,25 +84,25 @@ internal static class MockDataStore
         new User
         {
             Id = 1, FullName = "Admin User", Email = "admin@demo.com",
-            PasswordHash = "$2a$11$8IiNCARb1FToedExr5PpvO3QxQMzWoljEyEqDGLh.jbL69QLWpv1W",
+            PasswordHash = "$2a$11$zfRkFzsfjJ/dMsTdAhq.ie1gKjkUH6hRdzo.8yAZTQLLWgpwhQ4QC", // Admin1234!
             RoleId = 1, EmployeeId = null, IsActive = true, CreatedAt = DateTime.UtcNow
         },
         new User
         {
             Id = 2, FullName = "HR User", Email = "hr@demo.com",
-            PasswordHash = "$2a$11$BfLjw8gsxCof/mM3MB8wruBIsA3fovCOZpP25H7Tsjm.5Ew.5qOPi",
+            PasswordHash = "$2a$11$nCoV4NjJ9bj4oP5K3riM2e4gNOPO0Kk3rKmwWZI2ne6gXrnPM.Rym", // Hr1234!
             RoleId = 2, EmployeeId = null, IsActive = true, CreatedAt = DateTime.UtcNow
         },
         new User
         {
             Id = 3, FullName = "Mehmet Yılmaz", Email = "manager@demo.com",
-            PasswordHash = "$2a$11$DRnkGrvspqEBfHT0fk3EKOmUKGL7MXYQUJSVBlO594d8NzcB3Lfp6",
+            PasswordHash = "$2a$11$/EjKk6BgJtPAZjDW3H9zmeHaUMH.nbtF11lhEvhE7dISI5DPAlmcy", // Manager1234!
             RoleId = 3, EmployeeId = 2, IsActive = true, CreatedAt = DateTime.UtcNow
         },
         new User
         {
             Id = 4, FullName = "Ayşe Kaya", Email = "employee@demo.com",
-            PasswordHash = "$2a$11$Rw8gsfqXdbndB/aarmLucuQeO8uYCXgtSWAQISYBpZOqr5GURlap6",
+            PasswordHash = "$2a$11$uDROGAG.L2IJ/zDLlS/UjOXaiCpVo7/QCchgwykadmU3HLEhjR/A2", // Employee1234!
             RoleId = 4, EmployeeId = 1, IsActive = true, CreatedAt = DateTime.UtcNow
         },
     ];
