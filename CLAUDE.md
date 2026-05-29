@@ -182,7 +182,7 @@ Priority:    Medium
 - [x] Faz 0 — Solution kurulumu
 - [x] Faz 1 — Domain model
 - [x] Faz 2 — Contracts / DTO
-- [ ] Faz 3 — Application interfaces
+- [x] Faz 3 — Application interfaces
 - [ ] Faz 4 — Mock repositories
 - [ ] Faz 5 — API temel ayarları
 - [ ] Faz 6 — Authentication
