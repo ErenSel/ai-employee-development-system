@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using BitirmeBackend.Api.Middleware;
 using BitirmeBackend.Application.Interfaces;
@@ -7,8 +8,10 @@ using BitirmeBackend.Application.Services;
 using BitirmeBackend.Infrastructure.ExternalServices;
 using BitirmeBackend.Infrastructure.MockRepositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Polly;
 using Serilog;
 
 // Configure Serilog before builder
@@ -104,9 +107,44 @@ builder.Services.AddSingleton<IEmployeeTaskRepository, MockEmployeeTaskRepositor
 builder.Services.AddSingleton<IRefreshTokenRepository, MockRefreshTokenRepository>();
 builder.Services.AddSingleton<IUnitOfWork, MockUnitOfWork>();
 
-// FakeMlPredictionClient must NOT be used in Production
-if (!builder.Environment.IsProduction())
+// ML Prediction Client — FakeMlPredictionClient in Development, real client in Production
+if (builder.Environment.IsProduction())
+{
+    var mlBaseUrl  = builder.Configuration["MlService:BaseUrl"]  ?? "http://localhost:8001";
+    var timeoutSec = int.Parse(builder.Configuration["MlService:TimeoutSeconds"]               ?? "30");
+    var threshold  = int.Parse(builder.Configuration["MlService:CircuitBreakerFailureThreshold"] ?? "3");
+    var breakSec   = int.Parse(builder.Configuration["MlService:CircuitBreakerDurationSeconds"]  ?? "60");
+
+    builder.Services
+        .AddHttpClient<IMlPredictionClient, MlPredictionClient>(client =>
+        {
+            client.BaseAddress = new Uri(mlBaseUrl);
+            client.Timeout     = Timeout.InfiniteTimeSpan; // timeout controlled by resilience pipeline
+        })
+        .AddResilienceHandler("ml-circuit-breaker", (pipeline, _) =>
+        {
+            // Timeout first so TaskCanceledException is counted by circuit breaker
+            pipeline.AddTimeout(TimeSpan.FromSeconds(timeoutSec));
+
+            // Circuit breaker: handles exceptions AND 503 responses (model not loaded)
+            pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+            {
+                // CRITICAL: must handle 503 so it counts toward circuit opening
+                ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
+                    .Handle<HttpRequestException>()
+                    .Handle<TaskCanceledException>()
+                    .HandleResult(r => r.StatusCode == HttpStatusCode.ServiceUnavailable),
+                MinimumThroughput  = threshold,
+                FailureRatio       = 1.0 / threshold,   // e.g. 1/3 ≈ 33 % → opens after threshold failures in window
+                SamplingDuration   = TimeSpan.FromSeconds(breakSec * 2),
+                BreakDuration      = TimeSpan.FromSeconds(breakSec)
+            });
+        });
+}
+else
+{
     builder.Services.AddSingleton<IMlPredictionClient, FakeMlPredictionClient>();
+}
 
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
