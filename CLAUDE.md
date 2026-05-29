@@ -190,8 +190,8 @@ Priority:    Medium
 - [x] Faz 8 — Assessment API
 - [x] Faz 9 — ML Service entegrasyonu
 - [x] Faz 10 — Action Plan generation
-- [ ] Faz 11 — Action Plan düzenleme
-- [ ] Faz 12 — Employee Task API
+- [x] Faz 11 — Action Plan düzenleme
+- [x] Faz 12 — Employee Task API
 - [ ] Faz 13 — PDF Export
 - [ ] Faz 14 — EF Core + PostgreSQL
 - [ ] Faz 15 — Validation ve güvenlik
