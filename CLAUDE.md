@@ -184,7 +184,7 @@ Priority:    Medium
 - [x] Faz 2 — Contracts / DTO
 - [x] Faz 3 — Application interfaces
 - [x] Faz 4 — Mock repositories
-- [ ] Faz 5 — API temel ayarları
+- [x] Faz 5 — API temel ayarları
 - [ ] Faz 6 — Authentication
 - [ ] Faz 7 — Employee API
 - [ ] Faz 8 — Assessment API
