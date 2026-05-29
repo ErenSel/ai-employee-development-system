@@ -10,11 +10,13 @@ public class EmployeesController : BaseController
 {
     private readonly IEmployeeService _employeeService;
     private readonly IAssessmentService _assessmentService;
+    private readonly IActionPlanService _actionPlanService;
 
-    public EmployeesController(IEmployeeService employeeService, IAssessmentService assessmentService)
+    public EmployeesController(IEmployeeService employeeService, IAssessmentService assessmentService, IActionPlanService actionPlanService)
     {
         _employeeService = employeeService;
         _assessmentService = assessmentService;
+        _actionPlanService = actionPlanService;
     }
 
     [Authorize(Policy = "HrOrManager")]
@@ -68,6 +70,14 @@ public class EmployeesController : BaseController
     {
         var result = await _assessmentService.GetEmployeeAssessmentsAsync(id, pageNumber, pageSize);
         return Ok(result);
+    }
+
+    [Authorize(Policy = "HrOrManager")]
+    [HttpGet("{id:int}/action-plans")]
+    public async Task<IActionResult> GetActionPlans(int id)
+    {
+        var result = await _actionPlanService.GetEmployeeActionPlansAsync(id);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     [Authorize(Policy = "HrOrManager")]

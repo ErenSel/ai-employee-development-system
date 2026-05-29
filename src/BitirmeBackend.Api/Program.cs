@@ -153,6 +153,7 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IAssessmentService, AssessmentService>();
+builder.Services.AddScoped<IActionPlanService, ActionPlanService>();
 
 // ── Build ──────────────────────────────────────────────────────────────────────
 var app = builder.Build();
