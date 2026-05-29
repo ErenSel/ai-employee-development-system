@@ -18,6 +18,7 @@ public class ActionPlanService : IActionPlanService
     private readonly IModelVersionRepository _modelVersions;
     private readonly IEmployeeService _employeeService;
     private readonly IMlPredictionClient _mlClient;
+    private readonly IEmployeeTaskRepository _employeeTasks;
     private readonly IUnitOfWork _uow;
 
     public ActionPlanService(
@@ -28,16 +29,18 @@ public class ActionPlanService : IActionPlanService
         IModelVersionRepository modelVersions,
         IEmployeeService employeeService,
         IMlPredictionClient mlClient,
+        IEmployeeTaskRepository employeeTasks,
         IUnitOfWork uow)
     {
-        _assessments    = assessments;
-        _actionPlans    = actionPlans;
-        _aiPredictions  = aiPredictions;
-        _actionCatalog  = actionCatalog;
-        _modelVersions  = modelVersions;
+        _assessments     = assessments;
+        _actionPlans     = actionPlans;
+        _aiPredictions   = aiPredictions;
+        _actionCatalog   = actionCatalog;
+        _modelVersions   = modelVersions;
         _employeeService = employeeService;
-        _mlClient       = mlClient;
-        _uow            = uow;
+        _mlClient        = mlClient;
+        _employeeTasks   = employeeTasks;
+        _uow             = uow;
     }
 
     public async Task<ActionPlanDetailDto> GenerateDraftActionPlanAsync(GenerateActionPlanRequest request, int requestingUserId)
@@ -205,20 +208,183 @@ public class ActionPlanService : IActionPlanService
         return result;
     }
 
-    public Task<ActionPlanItemDto> UpdateActionPlanItemAsync(int planId, int itemId, UpdateActionPlanItemRequest request)
-        => throw new NotImplementedException("Faz 11'de implement edilecek.");
+    public async Task<ActionPlanItemDto> UpdateActionPlanItemAsync(int planId, int itemId, UpdateActionPlanItemRequest request)
+    {
+        var plan = await _actionPlans.GetByIdAsync(planId)
+            ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {planId}");
 
-    public Task<ActionPlanItemDto> AddManualItemAsync(int planId, AddManualActionPlanItemRequest request, int requestingUserId)
-        => throw new NotImplementedException("Faz 11'de implement edilecek.");
+        var item = await _actionPlans.GetItemByIdAsync(itemId)
+            ?? throw new KeyNotFoundException($"Aksiyon planı kalemi bulunamadı: {itemId}");
 
-    public Task RemoveItemAsync(int planId, int itemId)
-        => throw new NotImplementedException("Faz 11'de implement edilecek.");
+        if (item.ActionPlanId != planId)
+            throw new ArgumentException("Bu kalem belirtilen plana ait değil.");
 
-    public Task<ActionPlanDetailDto> ApproveActionPlanAsync(int id, int requestingUserId)
-        => throw new NotImplementedException("Faz 11'de implement edilecek.");
+        // Update provided fields
+        if (!string.IsNullOrWhiteSpace(request.Title))
+            item.Title = request.Title;
 
-    public Task<ActionPlanDetailDto> SendActionPlanToEmployeeAsync(int id, int requestingUserId)
-        => throw new NotImplementedException("Faz 11'de implement edilecek.");
+        if (!string.IsNullOrWhiteSpace(request.Description))
+            item.Description = request.Description;
+
+        if (!string.IsNullOrWhiteSpace(request.Priority) &&
+            Enum.TryParse<PriorityLevel>(request.Priority, ignoreCase: true, out var priority))
+            item.Priority = priority;
+
+        if (request.DueDate.HasValue)
+            item.DueDate = request.DueDate;
+
+        if (request.OrderNo > 0)
+            item.OrderNo = request.OrderNo;
+
+        // Source rule: AI → EditedAI; Manual/EditedAI → keep
+        if (item.Source == ActionPlanItemSource.AI)
+            item.Source = ActionPlanItemSource.EditedAI;
+
+        item.UpdatedAt = DateTime.UtcNow;
+        _actionPlans.UpdateItem(item);
+        await _uow.SaveChangesAsync();
+
+        return ToItemDto(item);
+    }
+
+    public async Task<ActionPlanItemDto> AddManualItemAsync(int planId, AddManualActionPlanItemRequest request, int requestingUserId)
+    {
+        var plan = await _actionPlans.GetByIdWithItemsAsync(planId)
+            ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {planId}");
+
+        if (plan.Status != ActionPlanStatus.Draft && plan.Status != ActionPlanStatus.Edited)
+            throw new ArgumentException($"Plan yalnızca Draft veya Edited durumunda düzenlenebilir. Mevcut durum: {plan.Status}");
+
+        var maxOrder = plan.Items.Any() ? plan.Items.Max(i => i.OrderNo) : 0;
+
+        if (!Enum.TryParse<PriorityLevel>(request.Priority, ignoreCase: true, out var priority))
+            priority = PriorityLevel.Medium;
+
+        var item = new ActionPlanItem
+        {
+            ActionPlanId        = planId,
+            ActionCatalogId     = request.ActionCatalogId,
+            AiPredictedActionId = null,
+            Title               = request.Title,
+            Description         = request.Description,
+            Priority            = priority,
+            DueDate             = request.DueDate,
+            Source              = ActionPlanItemSource.Manual,
+            OrderNo             = maxOrder + 1
+        };
+
+        await _actionPlans.AddItemAsync(item);
+
+        // Transition Draft → Edited
+        if (plan.Status == ActionPlanStatus.Draft)
+        {
+            plan.Status = ActionPlanStatus.Edited;
+            _actionPlans.Update(plan);
+        }
+
+        await _uow.SaveChangesAsync();
+
+        return ToItemDto(item);
+    }
+
+    public async Task RemoveItemAsync(int planId, int itemId)
+    {
+        var plan = await _actionPlans.GetByIdAsync(planId)
+            ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {planId}");
+
+        var item = await _actionPlans.GetItemByIdAsync(itemId)
+            ?? throw new KeyNotFoundException($"Aksiyon planı kalemi bulunamadı: {itemId}");
+
+        if (item.ActionPlanId != planId)
+            throw new ArgumentException("Bu kalem belirtilen plana ait değil.");
+
+        // Soft delete
+        _actionPlans.RemoveItem(item);
+
+        // Transition Draft → Edited
+        if (plan.Status == ActionPlanStatus.Draft)
+        {
+            plan.Status = ActionPlanStatus.Edited;
+            _actionPlans.Update(plan);
+        }
+
+        await _uow.SaveChangesAsync();
+    }
+
+    public async Task<ActionPlanDetailDto> ApproveActionPlanAsync(int id, int requestingUserId)
+    {
+        var plan = await _actionPlans.GetByIdWithItemsAsync(id)
+            ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {id}");
+
+        // Idempotent: already approved → return current state
+        if (plan.Status == ActionPlanStatus.Approved)
+            return ToDetailDto(plan);
+
+        if (plan.Status == ActionPlanStatus.Sent)
+            throw new ArgumentException("Plan zaten gönderilmiş, onaylanamaz.");
+
+        // Validate non-empty
+        var activeItems = plan.Items.Where(i => !i.IsDeleted).ToList();
+        if (activeItems.Count == 0)
+            throw new ArgumentException("Boş plan onaylanamaz.");
+
+        plan.Status     = ActionPlanStatus.Approved;
+        plan.ApprovedAt = DateTime.UtcNow;
+        _actionPlans.Update(plan);
+        await _uow.SaveChangesAsync();
+
+        return await GetActionPlanByIdAsync(id);
+    }
+
+    public async Task<ActionPlanDetailDto> SendActionPlanToEmployeeAsync(int id, int requestingUserId)
+    {
+        var plan = await _actionPlans.GetByIdWithItemsAsync(id)
+            ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {id}");
+
+        // Idempotent: already sent → return current state
+        if (plan.Status == ActionPlanStatus.Sent)
+            return ToDetailDto(plan);
+
+        if (plan.Status != ActionPlanStatus.Approved)
+            throw new ArgumentException($"Plan onaylanmış olmadan gönderilemez. Mevcut durum: {plan.Status}");
+
+        await _uow.BeginTransactionAsync();
+        try
+        {
+            plan.Status = ActionPlanStatus.Sent;
+            plan.SentAt = DateTime.UtcNow;
+            _actionPlans.Update(plan);
+
+            var activeItems = plan.Items.Where(i => !i.IsDeleted).ToList();
+            foreach (var item in activeItems)
+            {
+                var existingTasks = await _employeeTasks.GetByActionPlanItemIdAsync(item.Id);
+                if (existingTasks.Any())
+                    continue; // idempotency — skip if task already exists
+
+                var task = new EmployeeTask
+                {
+                    ActionPlanItemId  = item.Id,
+                    EmployeeId        = plan.EmployeeId,
+                    AssignedByUserId  = requestingUserId,
+                    Status            = EmployeeTaskStatus.Assigned,
+                    AssignedAt        = DateTime.UtcNow,
+                    DueDate           = item.DueDate
+                };
+                await _employeeTasks.AddAsync(task);
+            }
+
+            await _uow.SaveChangesAsync();
+            await _uow.CommitAsync();
+        }
+        catch
+        {
+            await _uow.RollbackAsync();
+            throw;
+        }
+
+        return await GetActionPlanByIdAsync(id);
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
