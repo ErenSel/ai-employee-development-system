@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\BitirmeBackend.Application\BitirmeBackend.Application.csproj" />
+    <ProjectReference Include="..\BitirmeBackend.Infrastructure\BitirmeBackend.Infrastructure.csproj" />
+    <ProjectReference Include="..\BitirmeBackend.Contracts\BitirmeBackend.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
