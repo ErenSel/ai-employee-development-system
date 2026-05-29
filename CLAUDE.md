@@ -179,7 +179,7 @@ Priority:    Medium
 
 ## Şu Anki Durum
 
-- [ ] Faz 0 — Solution kurulumu
+- [x] Faz 0 — Solution kurulumu
 - [ ] Faz 1 — Domain model
 - [ ] Faz 2 — Contracts / DTO
 - [ ] Faz 3 — Application interfaces
