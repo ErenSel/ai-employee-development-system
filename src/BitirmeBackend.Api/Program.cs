@@ -7,7 +7,10 @@ using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Application.Services;
 using BitirmeBackend.Infrastructure.ExternalServices;
 using BitirmeBackend.Infrastructure.MockRepositories;
+using BitirmeBackend.Api.Validators;
 using BitirmeBackend.Infrastructure.Pdf;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
@@ -92,8 +95,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ── Controllers ────────────────────────────────────────────────────────────────
+// ── Controllers + FluentValidation ────────────────────────────────────────────
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 
 // ── Mock Repositories (DI) ─────────────────────────────────────────────────────
 builder.Services.AddSingleton<IUserRepository, MockUserRepository>();

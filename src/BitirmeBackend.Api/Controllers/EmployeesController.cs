@@ -23,6 +23,9 @@ public class EmployeesController : BaseController
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
     {
+        if (pageNumber < 1) return BadRequest(ApiResponse<object>.Fail("pageNumber en az 1 olmalıdır."));
+        if (pageSize < 1 || pageSize > 100) return BadRequest(ApiResponse<object>.Fail("pageSize 1 ile 100 arasında olmalıdır."));
+
         var result = await _employeeService.GetEmployeesAsync(pageNumber, pageSize);
 
         if (CurrentUserRole == "Manager")
@@ -68,6 +71,9 @@ public class EmployeesController : BaseController
     public async Task<IActionResult> GetAssessments(int id,
         [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
+        if (pageNumber < 1) return BadRequest(ApiResponse<object>.Fail("pageNumber en az 1 olmalıdır."));
+        if (pageSize < 1 || pageSize > 100) return BadRequest(ApiResponse<object>.Fail("pageSize 1 ile 100 arasında olmalıdır."));
+
         var result = await _assessmentService.GetEmployeeAssessmentsAsync(id, pageNumber, pageSize);
         return Ok(result);
     }

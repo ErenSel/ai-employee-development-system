@@ -24,6 +24,9 @@ public class EmployeeTasksController : BaseController
         if (empId is null)
             return BadRequest(ApiResponse<object>.Fail("Bu endpoint sadece çalışan rolü için kullanılabilir."));
 
+        if (pageNumber < 1) return BadRequest(ApiResponse<object>.Fail("pageNumber en az 1 olmalıdır."));
+        if (pageSize < 1 || pageSize > 100) return BadRequest(ApiResponse<object>.Fail("pageSize 1 ile 100 arasında olmalıdır."));
+
         var result = await _taskService.GetMyTasksAsync(empId.Value, pageNumber, pageSize);
         return Ok(result);
     }
