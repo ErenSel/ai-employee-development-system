@@ -9,9 +9,13 @@ namespace BitirmeBackend.Api.Controllers;
 public class ActionPlansController : BaseController
 {
     private readonly IActionPlanService _actionPlanService;
+    private readonly IPdfExportService  _pdfExportService;
 
-    public ActionPlansController(IActionPlanService actionPlanService) =>
+    public ActionPlansController(IActionPlanService actionPlanService, IPdfExportService pdfExportService)
+    {
         _actionPlanService = actionPlanService;
+        _pdfExportService  = pdfExportService;
+    }
 
     [Authorize(Policy = "HrOrManager")]
     [HttpPost("generate")]
@@ -67,5 +71,13 @@ public class ActionPlansController : BaseController
     {
         var result = await _actionPlanService.SendActionPlanToEmployeeAsync(id, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    [Authorize(Policy = "HrOrManager")]
+    [HttpGet("{id:int}/export-pdf")]
+    public async Task<IActionResult> ExportPdf(int id)
+    {
+        var bytes = await _pdfExportService.GenerateActionPlanPdfAsync(id);
+        return File(bytes, "application/pdf", $"aksiyon-plani-{id}.pdf");
     }
 }

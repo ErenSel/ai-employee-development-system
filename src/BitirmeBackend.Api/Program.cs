@@ -7,6 +7,7 @@ using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Application.Services;
 using BitirmeBackend.Infrastructure.ExternalServices;
 using BitirmeBackend.Infrastructure.MockRepositories;
+using BitirmeBackend.Infrastructure.Pdf;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
@@ -155,6 +156,7 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IAssessmentService, AssessmentService>();
 builder.Services.AddScoped<IActionPlanService, ActionPlanService>();
 builder.Services.AddScoped<IEmployeeTaskService, EmployeeTaskService>();
+builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 
 // ── Build ──────────────────────────────────────────────────────────────────────
 var app = builder.Build();
