@@ -11,7 +11,15 @@
       "Bash(dotnet add *)",
       "Bash(find /c/Users/erens/.nuget/packages/questpdf -name \"QuestPDF.dll\" 2>/dev/null | head -3)",
       "Bash(grep -v \"^$\")",
-      "Bash(dotnet test *)"
+      "Bash(dotnet test *)",
+      "Bash(grep -Hm1 ^description: 'C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\bitirme-backend/.claude/skills/*/SKILL.md')",
+      "Bash(dotnet run *)",
+      "Bash(curl -s http://localhost:5100/api/health)",
+      "Bash(pkill -f \"BitirmeBackend.Api\")",
+      "Bash(pkill -f \"dotnet.*BitirmeBackend\")",
+      "Bash(not exist *)",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\erens\\\\Desktop\\\\bitirme-projesi\\\\bitirme-backend\\\\docs\")",
+      "PowerShell(\"done\")"
     ]
   }
 }
