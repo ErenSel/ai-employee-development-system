@@ -192,7 +192,7 @@ Priority:    Medium
 - [x] Faz 10 — Action Plan generation
 - [x] Faz 11 — Action Plan düzenleme
 - [x] Faz 12 — Employee Task API
-- [ ] Faz 13 — PDF Export
+- [x] Faz 13 — PDF Export
 - [ ] Faz 14 — EF Core + PostgreSQL
 - [ ] Faz 15 — Validation ve güvenlik
 - [ ] Faz 16 — Testler

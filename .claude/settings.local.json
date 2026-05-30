@@ -7,7 +7,10 @@
       "PowerShell(Set-Location \"$env:TEMP\\\\hashtest\"; dotnet run 2>&1)",
       "Bash(dotnet build *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(dotnet add *)",
+      "Bash(find /c/Users/erens/.nuget/packages/questpdf -name \"QuestPDF.dll\" 2>/dev/null | head -3)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
