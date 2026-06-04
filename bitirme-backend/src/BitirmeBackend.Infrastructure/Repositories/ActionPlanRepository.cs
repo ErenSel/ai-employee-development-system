@@ -19,6 +19,7 @@ public class ActionPlanRepository : IActionPlanRepository
             .Include(p => p.Employee)
             .Include(p => p.CreatedByUser)
             .Include(p => p.Items.Where(i => !i.IsDeleted))
+                .ThenInclude(i => i.EmployeeTasks.Where(t => !t.IsDeleted))
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
     public async Task<IEnumerable<ActionPlan>> GetByEmployeeIdAsync(int employeeId) =>

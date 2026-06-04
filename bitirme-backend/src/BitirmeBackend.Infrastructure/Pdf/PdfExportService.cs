@@ -39,8 +39,13 @@ public class PdfExportService : IPdfExportService
         // 2. Load assessment (for cycle name)
         var assessment = await _assessments.GetByIdWithDetailsAsync(plan.AssessmentId);
 
-        // 3. Active items only
-        var items = plan.Items.Where(i => !i.IsDeleted).OrderBy(i => i.OrderNo).ToList();
+        // 3. Active items only — completed last, then priority High→Medium→Low, then OrderNo
+        var items = plan.Items
+            .Where(i => !i.IsDeleted)
+            .OrderBy(i => i.EmployeeTasks.Any(t => !t.IsDeleted && t.Status == EmployeeTaskStatus.Completed) ? 1 : 0)
+            .ThenByDescending(i => i.Priority)
+            .ThenBy(i => i.OrderNo)
+            .ToList();
 
         // 4. Load EmployeeTasks for each item
         var taskMap = new Dictionary<int, EmployeeTask?>();
