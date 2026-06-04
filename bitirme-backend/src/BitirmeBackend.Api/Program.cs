@@ -6,12 +6,14 @@ using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Application.Services;
 using BitirmeBackend.Infrastructure.ExternalServices;
-using BitirmeBackend.Infrastructure.MockRepositories;
+using BitirmeBackend.Infrastructure.Persistence;
+using BitirmeBackend.Infrastructure.Repositories;
 using BitirmeBackend.Api.Validators;
 using BitirmeBackend.Infrastructure.Pdf;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -100,18 +102,23 @@ builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 
-// ── Mock Repositories (DI) ─────────────────────────────────────────────────────
-builder.Services.AddSingleton<IUserRepository, MockUserRepository>();
-builder.Services.AddSingleton<IRoleRepository, MockRoleRepository>();
-builder.Services.AddSingleton<IEmployeeRepository, MockEmployeeRepository>();
-builder.Services.AddSingleton<IAssessmentRepository, MockAssessmentRepository>();
-builder.Services.AddSingleton<IActionCatalogRepository, MockActionCatalogRepository>();
-builder.Services.AddSingleton<IModelVersionRepository, MockModelVersionRepository>();
-builder.Services.AddSingleton<IAiPredictionRepository, MockAiPredictionRepository>();
-builder.Services.AddSingleton<IActionPlanRepository, MockActionPlanRepository>();
-builder.Services.AddSingleton<IEmployeeTaskRepository, MockEmployeeTaskRepository>();
-builder.Services.AddSingleton<IRefreshTokenRepository, MockRefreshTokenRepository>();
-builder.Services.AddSingleton<IUnitOfWork, MockUnitOfWork>();
+// ── EF Core (PostgreSQL) ────────────────────────────────────────────────────────
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing");
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+// ── Repositories (DI) — real PostgreSQL implementations ─────────────────────────
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IAssessmentRepository, AssessmentRepository>();
+builder.Services.AddScoped<IActionCatalogRepository, ActionCatalogRepository>();
+builder.Services.AddScoped<IModelVersionRepository, ModelVersionRepository>();
+builder.Services.AddScoped<IAiPredictionRepository, AiPredictionRepository>();
+builder.Services.AddScoped<IActionPlanRepository, ActionPlanRepository>();
+builder.Services.AddScoped<IEmployeeTaskRepository, EmployeeTaskRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
 // ML Prediction Client — FakeMlPredictionClient in Development, real client in Production
 if (builder.Environment.IsProduction())
@@ -165,6 +172,13 @@ builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 
 // ── Build ──────────────────────────────────────────────────────────────────────
 var app = builder.Build();
+
+// ── Apply migrations, seed data, and realign identity sequences ─────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await DbInitializer.InitializeAsync(db);
+}
 
 // ── Middleware pipeline ────────────────────────────────────────────────────────
 // Order: ExceptionHandling → CorrelationId → Serilog → CORS → Auth → Controllers

@@ -1,5 +1,6 @@
 using BitirmeBackend.Domain.Entities;
 using BitirmeBackend.Domain.Enums;
+using BitirmeBackend.Infrastructure.Persistence.Seed;
 
 namespace BitirmeBackend.Infrastructure.MockRepositories;
 
@@ -165,23 +166,8 @@ internal static class MockDataStore
         new AssessmentScore { Id = 13, AssessmentId = 1, CompetencyId = 13, EvaluatorType = EvaluatorType.Manager, Score = 3.1, CreatedAt = DateTime.UtcNow },
     ];
 
-    // ── Action Catalog (13 codes that FakeMlPredictionClient returns) ─────
-    public static List<ActionCatalog> ActionCatalog { get; } =
-    [
-        new ActionCatalog { Id = 1,  Code = "DEPT_COMP1_03", Title = "Departman Yetkinliği 1 Geliştirme Planı",        Description = "Departmana özgü birincil yetkinliği orta seviyeye taşımak için yapılandırılmış öğrenme programına katılım.",  DefaultPriority = PriorityLevel.High,   EstimatedDurationDays = 30, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 2,  Code = "ROLE_COMP1_03", Title = "Rol Yetkinliği 1 Uygulama Projesi",              Description = "Role özgü birincil yetkinliği pekiştirmek için gerçek iş senaryoları üzerinde mentörlük eşliğinde çalışma.",  DefaultPriority = PriorityLevel.High,   EstimatedDurationDays = 45, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 3,  Code = "ROLE_COMP2_03", Title = "Rol Yetkinliği 2 Gelişim Atölyesi",              Description = "Role özgü ikincil yetkinliğin orta seviyeye çıkarılması için atölye çalışması ve vaka analizi.",                DefaultPriority = PriorityLevel.High,   EstimatedDurationDays = 21, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 4,  Code = "DEPT_COMP3_03", Title = "Departman Yetkinliği 3 Sertifikasyon Programı",  Description = "Departmana özgü üçüncü yetkinlik alanında sertifika programına kaydolma ve tamamlama.",                          DefaultPriority = PriorityLevel.Medium, EstimatedDurationDays = 60, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 5,  Code = "CORE_ACCT_04",  Title = "Sorumluluk Bilinci İleri Seviye Gelişimi",       Description = "Sorumluluk alma ve hesap verebilirlik konusunda vaka çalışmaları ve akran geri bildirimiyle ileri seviye gelişim.", DefaultPriority = PriorityLevel.Medium, EstimatedDurationDays = 30, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 6,  Code = "CORE_INIT_03",  Title = "İnisiyatif Alma Becerileri Programı",            Description = "Proaktif davranış ve inisiyatif alma becerilerini geliştirmeye yönelik koçluk seansları.",                       DefaultPriority = PriorityLevel.Medium, EstimatedDurationDays = 21, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 7,  Code = "CORE_TIME_03",  Title = "Zaman Yönetimi Optimizasyon Planı",              Description = "Önceliklendirme teknikleri ve üretkenlik araçları kullanarak zaman yönetimini orta seviyeye taşıma.",           DefaultPriority = PriorityLevel.Medium, EstimatedDurationDays = 14, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 8,  Code = "DEPT_COMP2_03", Title = "Departman Yetkinliği 2 Çapraz Eğitim",           Description = "Departmana özgü ikincil yetkinliği geliştirmek için farklı birimlerle çapraz eğitim ve rotasyon programı.",     DefaultPriority = PriorityLevel.Medium, EstimatedDurationDays = 30, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 9,  Code = "CORE_COMM_03",  Title = "İletişim Becerileri Sunum ve Yazılı İfade",      Description = "Sözlü ve yazılı iletişim becerilerini orta seviyeye çıkarmak için sunum eğitimi ve yazılı ifade atölyesi.",      DefaultPriority = PriorityLevel.Medium, EstimatedDurationDays = 21, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 10, Code = "CORE_LEARN_04", Title = "Öğrenme Çevikliği İleri Seviye Programı",        Description = "Hızlı değişen ortamlara adaptasyon ve yeni beceri kazanım hızını artırmak için ileri seviye öğrenme programı.",   DefaultPriority = PriorityLevel.Low,    EstimatedDurationDays = 45, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 11, Code = "CORE_TEAM_04",  Title = "Takım Çalışması ve İşbirliği İleri Seviye",      Description = "Ekip dinamikleri ve ortak hedeflere ulaşma konusunda ileri seviye takım çalışması eğitimi.",                     DefaultPriority = PriorityLevel.Low,    EstimatedDurationDays = 21, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 12, Code = "CORE_ADAPT_03", Title = "Değişime Uyum Yeteneği Koçluk Programı",         Description = "Değişim yönetimi ve esneklik becerilerini orta seviyeye taşımak için bireysel koçluk seansları.",                DefaultPriority = PriorityLevel.Low,    EstimatedDurationDays = 30, IsActive = true, CreatedAt = DateTime.UtcNow },
-        new ActionCatalog { Id = 13, Code = "CORE_PROB_04",  Title = "Problem Çözme İleri Analitik Düşünce",           Description = "Analitik düşünce ve yaratıcı problem çözme yöntemlerinde ileri seviye uygulama ve simülasyon çalışmaları.",      DefaultPriority = PriorityLevel.Low,    EstimatedDurationDays = 30, IsActive = true, CreatedAt = DateTime.UtcNow },
-    ];
+    // ── Action Catalog (all 47 ML action labels, shared with the EF Core seed) ─────
+    public static List<ActionCatalog> ActionCatalog { get; } = [.. ActionCatalogSeed.All];
 
     // ── Model Version ─────────────────────────────────────────────────────
     public static List<ModelVersion> ModelVersions { get; } =

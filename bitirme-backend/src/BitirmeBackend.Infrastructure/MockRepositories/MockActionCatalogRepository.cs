@@ -8,17 +8,18 @@ public class MockActionCatalogRepository : IActionCatalogRepository
     private static IEnumerable<ActionCatalog> Active =>
         MockDataStore.ActionCatalog.Where(c => !c.IsDeleted);
 
-    public Task<ActionCatalog?> GetByIdAsync(int id) =>
-        Task.FromResult(Active.FirstOrDefault(c => c.Id == id));
+    public Task<ActionCatalog?> GetByIdAsync(string actionId) =>
+        Task.FromResult(Active.FirstOrDefault(c =>
+            c.ActionId.Equals(actionId, StringComparison.OrdinalIgnoreCase)));
 
     public Task<ActionCatalog?> GetByCodeAsync(string code) =>
         Task.FromResult(Active.FirstOrDefault(c =>
-            c.Code.Equals(code, StringComparison.OrdinalIgnoreCase)));
+            c.ActionId.Equals(code, StringComparison.OrdinalIgnoreCase)));
 
     public Task<IEnumerable<ActionCatalog>> GetByCodesAsync(IEnumerable<string> codes)
     {
         var codeSet = codes.Select(c => c.ToUpper()).ToHashSet();
-        var result = Active.Where(c => codeSet.Contains(c.Code.ToUpper()));
+        var result = Active.Where(c => codeSet.Contains(c.ActionId.ToUpper()));
         return Task.FromResult(result);
     }
 

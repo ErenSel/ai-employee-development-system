@@ -6,5 +6,5 @@ public class AddManualActionPlanItemRequest
     public string Description { get; set; } = string.Empty;
     public string Priority { get; set; } = "Medium";
     public DateTime? DueDate { get; set; }
-    public int? ActionCatalogId { get; set; }
+    public string? ActionCatalogId { get; set; }
 }

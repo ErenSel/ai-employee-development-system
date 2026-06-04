@@ -169,7 +169,9 @@ public class EmployeeService : IEmployeeService
             YearsAtCompany         = emp.YearsAtCompany,
             YearsInCurrentRole     = emp.YearsInCurrentRole,
             YearsWithCurrManager   = emp.YearsWithCurrManager,
-            PerformanceScore       = emp.PerformanceScore,
+            // PerformanceScore sent to ML prefers the assessment's OverallScore;
+            // Employee.PerformanceScore is the cached latest/general score fallback.
+            PerformanceScore       = assessment.OverallScore ?? emp.PerformanceScore,
             Core_Communication     = scoreMap["Core_Communication"],
             Core_Teamwork          = scoreMap["Core_Teamwork"],
             Core_ProblemSolving    = scoreMap["Core_ProblemSolving"],

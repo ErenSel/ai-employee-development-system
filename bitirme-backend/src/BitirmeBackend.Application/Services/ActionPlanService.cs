@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BitirmeBackend.Application.Interfaces;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
@@ -128,10 +129,10 @@ public class ActionPlanService : IActionPlanService
             await _aiPredictions.AddPredictedActionsAsync(predictedActions);
             await _uow.SaveChangesAsync();
 
-            // Step 11: Bulk load action catalog entries
+            // Step 11: Bulk load action catalog entries (keyed by string ActionId)
             var codes   = recommendedActions.Select(x => x.dto.Code);
             var catalog = (await _actionCatalog.GetByCodesAsync(codes))
-                .ToDictionary(c => c.Code, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(c => c.ActionId, StringComparer.OrdinalIgnoreCase);
 
             // Step 12: Create action plan
             var plan = new ActionPlan
@@ -144,20 +145,26 @@ public class ActionPlanService : IActionPlanService
             await _actionPlans.AddAsync(plan);
             await _uow.SaveChangesAsync();
 
-            // Step 13: Create action plan items
+            // Step 13: Create action plan items.
+            // Title/Description/Resource/DeliveryType are parsed from ActionCatalog.ContentData
+            // (JSONB) and snapshotted onto the item so future catalog edits don't alter the plan.
             foreach (var (action, rank) in recommendedActions)
             {
                 var predicted = predictedActions.First(p => p.ActionCode == action.Code);
                 catalog.TryGetValue(action.Code, out var entry);
 
+                var snapshot = ResolveContent(entry, action.Code, features.JobRole, features.Department);
+
                 var item = new ActionPlanItem
                 {
                     ActionPlanId        = plan.Id,
-                    ActionCatalogId     = entry?.Id,
+                    ActionCatalogId     = entry?.ActionId,
                     AiPredictedActionId = predicted.Id,
-                    Title               = entry?.Title ?? $"Gelişim Aksiyonu: {action.Code}",
-                    Description         = entry?.Description ?? "Bu aksiyon için lütfen yöneticinizle iletişime geçin.",
-                    Priority            = entry?.DefaultPriority ?? PriorityLevel.Medium,
+                    Title               = snapshot.Title,
+                    Description         = snapshot.Description,
+                    Resource            = snapshot.Resource,
+                    DeliveryType        = snapshot.DeliveryType,
+                    Priority            = PriorityLevel.Medium,
                     Source              = ActionPlanItemSource.AI,
                     OrderNo             = rank
                 };
@@ -450,9 +457,99 @@ public class ActionPlanService : IActionPlanService
         AiPredictedActionId = item.AiPredictedActionId,
         Title               = item.Title,
         Description         = item.Description,
+        Resource            = item.Resource,
+        DeliveryType        = item.DeliveryType,
         Priority            = item.Priority.ToString(),
         DueDate             = item.DueDate,
         Source              = item.Source.ToString(),
         OrderNo             = item.OrderNo
     };
+
+    // ── ContentData (JSONB) parsing ─────────────────────────────────────────────
+    // Core actions:        flat object { title, description, resource, delivery_type }
+    // Department/Role:      nested object keyed by JobRole / Department name
+    //                       → try JobRole, then Department, then first object value
+    // Anything unparseable: documented fallback title/description
+
+    private static (string Title, string Description, string? Resource, string? DeliveryType) ResolveContent(
+        ActionCatalog? entry, string actionCode, string jobRole, string department)
+    {
+        var fallbackTitle = $"Gelişim Aksiyonu: {actionCode}";
+        const string fallbackDescription = "Bu aksiyon için lütfen yöneticinizle iletişime geçin.";
+
+        if (entry is null || string.IsNullOrWhiteSpace(entry.ContentData))
+            return (fallbackTitle, fallbackDescription, null, null);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(entry.ContentData);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+                return (fallbackTitle, fallbackDescription, null, null);
+
+            JsonElement content;
+            if (root.TryGetProperty("title", out _))
+                content = root;                                   // flat core content
+            else if (TryGetObjectProperty(root, jobRole, out var byRole))
+                content = byRole;                                 // nested — role match
+            else if (TryGetObjectProperty(root, department, out var byDept))
+                content = byDept;                                 // nested — department match
+            else
+            {
+                content = FirstObject(root);                      // nested — first available
+                if (content.ValueKind != JsonValueKind.Object)
+                    return (fallbackTitle, fallbackDescription, null, null);
+            }
+
+            var title    = GetString(content, "title");
+            var resource = GetString(content, "resource");
+            var delivery = GetString(content, "delivery_type");
+            var description = GetString(content, "description");
+
+            if (string.IsNullOrWhiteSpace(title))
+                return (fallbackTitle, fallbackDescription, resource, delivery);
+
+            if (string.IsNullOrWhiteSpace(description))
+                description = $"{entry.TargetCompetency} yetkinliğini geliştirmeye yönelik {entry.ActionType} aksiyonu.";
+
+            return (title!, description!, resource, delivery);
+        }
+        catch (JsonException)
+        {
+            return (fallbackTitle, fallbackDescription, null, null);
+        }
+    }
+
+    private static bool TryGetObjectProperty(JsonElement root, string? name, out JsonElement value)
+    {
+        value = default;
+        if (string.IsNullOrWhiteSpace(name))
+            return false;
+
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (prop.Value.ValueKind == JsonValueKind.Object &&
+                string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = prop.Value;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static JsonElement FirstObject(JsonElement root)
+    {
+        foreach (var prop in root.EnumerateObject())
+            if (prop.Value.ValueKind == JsonValueKind.Object)
+                return prop.Value;
+        return default;
+    }
+
+    private static string? GetString(JsonElement obj, string propName) =>
+        obj.ValueKind == JsonValueKind.Object &&
+        obj.TryGetProperty(propName, out var el) &&
+        el.ValueKind == JsonValueKind.String
+            ? el.GetString()
+            : null;
 }
