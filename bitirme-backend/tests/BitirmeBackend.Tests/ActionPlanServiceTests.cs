@@ -222,6 +222,45 @@ public class ActionPlanServiceTests
         capturedRun.ErrorMessage.Should().NotBeNullOrEmpty();
     }
 
+    [Fact]
+    public async Task GenerateDraftActionPlanAsync_AssessmentNotCompleted_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var draftAssessment = MakeAssessment();
+        draftAssessment.Status = AssessmentStatus.Draft;
+
+        m.Assessments.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(draftAssessment);
+
+        await svc.Invoking(s => s.GenerateDraftActionPlanAsync(
+                new GenerateActionPlanRequest { AssessmentId = 1, TopK = 13 }, 2))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*tamamlanmış*");
+    }
+
+    [Fact]
+    public async Task GenerateDraftActionPlanAsync_MlReturnsZeroActions_ThrowsInvalidOperation()
+    {
+        var (svc, m) = Build();
+
+        m.Assessments.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(MakeAssessment());
+        m.ActionPlans.Setup(r => r.GetActiveByAssessmentIdAsync(1)).ReturnsAsync((ActionPlan?)null);
+        m.ActionPlans.Setup(r => r.GetByEmployeeIdAsync(10)).ReturnsAsync(new List<ActionPlan>());
+        m.MlClient.Setup(c => c.IsHealthyAsync()).ReturnsAsync(true);
+        m.EmployeeService.Setup(s => s.GetEmployeeFeaturesForPredictionAsync(It.IsAny<int>(), It.IsAny<int>()))
+                         .ReturnsAsync(MakeFeatures());
+        m.ModelVersions.Setup(r => r.GetActiveAsync()).ReturnsAsync(new ModelVersion { Id = 1 });
+        m.MlClient.Setup(c => c.PredictActionsTopKAsync(It.IsAny<MlPredictionRequest>(), It.IsAny<int>()))
+                  .ReturnsAsync(MakeMlResponse(count: 0));
+
+        await svc.Invoking(s => s.GenerateDraftActionPlanAsync(
+                new GenerateActionPlanRequest { AssessmentId = 1, TopK = 13 }, 2))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*hiç aksiyon önerisi*");
+
+        // No plan should be persisted
+        m.ActionPlans.Verify(r => r.AddAsync(It.IsAny<ActionPlan>()), Times.Never);
+    }
+
     // ── ApproveActionPlanAsync ────────────────────────────────────────────────
 
     [Fact]
@@ -273,6 +312,98 @@ public class ActionPlanServiceTests
         result.Status.Should().Be("Approved");
         // Update should NOT be called — idempotent return
         m.ActionPlans.Verify(r => r.Update(It.IsAny<ActionPlan>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveActionPlanAsync_CompletedPlan_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(itemCount: 3);
+        plan.Status = ActionPlanStatus.Completed;
+
+        m.ActionPlans.Setup(r => r.GetByIdWithItemsAsync(It.IsAny<int>())).ReturnsAsync(plan);
+
+        await svc.Invoking(s => s.ApproveActionPlanAsync(1, 2))
+                 .Should().ThrowAsync<ArgumentException>()
+                 .WithMessage("*onaylanamaz*");
+
+        m.ActionPlans.Verify(r => r.Update(It.IsAny<ActionPlan>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveActionPlanAsync_CancelledPlan_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(itemCount: 3);
+        plan.Status = ActionPlanStatus.Cancelled;
+
+        m.ActionPlans.Setup(r => r.GetByIdWithItemsAsync(It.IsAny<int>())).ReturnsAsync(plan);
+
+        await svc.Invoking(s => s.ApproveActionPlanAsync(1, 2))
+                 .Should().ThrowAsync<ArgumentException>()
+                 .WithMessage("*onaylanamaz*");
+    }
+
+    // ── CancelActionPlanAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CancelActionPlanAsync_DraftPlan_SetsCancelledStatus()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(itemCount: 3);
+        plan.Status = ActionPlanStatus.Draft;
+
+        m.ActionPlans.Setup(r => r.GetByIdWithItemsAsync(It.IsAny<int>())).ReturnsAsync(plan);
+        m.ActionPlans.Setup(r => r.Update(It.IsAny<ActionPlan>()));
+
+        var result = await svc.CancelActionPlanAsync(1, 2);
+
+        plan.Status.Should().Be(ActionPlanStatus.Cancelled);
+        result.Should().NotBeNull();
+        result.Status.Should().Be("Cancelled");
+    }
+
+    [Fact]
+    public async Task CancelActionPlanAsync_AlreadyCancelled_ReturnsCurrentPlanIdempotently()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(itemCount: 3);
+        plan.Status = ActionPlanStatus.Cancelled;
+
+        m.ActionPlans.Setup(r => r.GetByIdWithItemsAsync(It.IsAny<int>())).ReturnsAsync(plan);
+
+        var result = await svc.CancelActionPlanAsync(1, 2);
+
+        result.Status.Should().Be("Cancelled");
+        m.ActionPlans.Verify(r => r.Update(It.IsAny<ActionPlan>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CancelActionPlanAsync_SentPlan_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(itemCount: 3);
+        plan.Status = ActionPlanStatus.Sent;
+
+        m.ActionPlans.Setup(r => r.GetByIdWithItemsAsync(It.IsAny<int>())).ReturnsAsync(plan);
+
+        await svc.Invoking(s => s.CancelActionPlanAsync(1, 2))
+                 .Should().ThrowAsync<ArgumentException>()
+                 .WithMessage("*gönderilmiş plan iptal edilemez*");
+    }
+
+    [Fact]
+    public async Task CancelActionPlanAsync_CompletedPlan_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(itemCount: 3);
+        plan.Status = ActionPlanStatus.Completed;
+
+        m.ActionPlans.Setup(r => r.GetByIdWithItemsAsync(It.IsAny<int>())).ReturnsAsync(plan);
+
+        await svc.Invoking(s => s.CancelActionPlanAsync(1, 2))
+                 .Should().ThrowAsync<ArgumentException>()
+                 .WithMessage("*Tamamlanmış plan iptal edilemez*");
     }
 
     // ── SendActionPlanToEmployeeAsync ─────────────────────────────────────────

@@ -74,6 +74,14 @@ public class ActionPlansController : BaseController
     }
 
     [Authorize(Policy = "HrOrManager")]
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var result = await _actionPlanService.CancelActionPlanAsync(id, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    [Authorize(Policy = "HrOrManager")]
     [HttpGet("{id:int}/export-pdf")]
     public async Task<IActionResult> ExportPdf(int id)
     {

@@ -50,6 +50,10 @@ public class ActionPlanService : IActionPlanService
         var assessment = await _assessments.GetByIdAsync(request.AssessmentId)
             ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {request.AssessmentId}");
 
+        // Assessment must be Completed before a plan can be generated from it
+        if (assessment.Status != AssessmentStatus.Completed)
+            throw new ArgumentException("Aksiyon planı oluşturmak için değerlendirmenin tamamlanmış olması gerekir.");
+
         var employeeId = assessment.EmployeeId;
 
         // Step 3: Duplicate active plan check — BEFORE ML call
@@ -107,6 +111,11 @@ public class ActionPlanService : IActionPlanService
                 await _uow.CommitAsync();
                 throw;
             }
+
+            // Guard: ML returned no recommendations — do not persist an empty plan
+            // that would permanently block the employee from new plans/assessments.
+            if (mlResponse.RecommendedActions == null || !mlResponse.RecommendedActions.Any())
+                throw new InvalidOperationException("ML servisi hiç aksiyon önerisi döndürmedi. Plan oluşturulamaz.");
 
             // Step 9: Save successful prediction run
             var predictionRun = new AiPredictionRun
@@ -330,12 +339,16 @@ public class ActionPlanService : IActionPlanService
         var plan = await _actionPlans.GetByIdWithItemsAsync(id)
             ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {id}");
 
+        // Only Draft/Edited (or an already-Approved idempotent call) may be approved.
+        // Blocks Sent/Completed/Cancelled from being (re-)approved.
+        if (plan.Status != ActionPlanStatus.Draft &&
+            plan.Status != ActionPlanStatus.Edited &&
+            plan.Status != ActionPlanStatus.Approved)
+            throw new ArgumentException($"Bu plan onaylanamaz. Mevcut durum: {plan.Status}");
+
         // Idempotent: already approved → return current state
         if (plan.Status == ActionPlanStatus.Approved)
             return ToDetailDto(plan);
-
-        if (plan.Status == ActionPlanStatus.Sent)
-            throw new ArgumentException("Plan zaten gönderilmiş, onaylanamaz.");
 
         // Validate non-empty
         var activeItems = plan.Items.Where(i => !i.IsDeleted).ToList();
@@ -396,6 +409,30 @@ public class ActionPlanService : IActionPlanService
             await _uow.RollbackAsync();
             throw;
         }
+
+        return await GetActionPlanByIdAsync(id);
+    }
+
+    public async Task<ActionPlanDetailDto> CancelActionPlanAsync(int id, int requestingUserId)
+    {
+        var plan = await _actionPlans.GetByIdWithItemsAsync(id)
+            ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {id}");
+
+        // Idempotent: already cancelled → return current state
+        if (plan.Status == ActionPlanStatus.Cancelled)
+            return ToDetailDto(plan);
+
+        if (plan.Status == ActionPlanStatus.Completed)
+            throw new ArgumentException("Tamamlanmış plan iptal edilemez.");
+
+        // Only Draft/Edited plans may be cancelled; Approved/Sent cannot.
+        if (plan.Status != ActionPlanStatus.Draft && plan.Status != ActionPlanStatus.Edited)
+            throw new ArgumentException("Onaylanmış veya gönderilmiş plan iptal edilemez. Lütfen yöneticinizle iletişime geçin.");
+
+        plan.Status    = ActionPlanStatus.Cancelled;
+        plan.UpdatedAt = DateTime.UtcNow;
+        _actionPlans.Update(plan);
+        await _uow.SaveChangesAsync();
 
         return await GetActionPlanByIdAsync(id);
     }

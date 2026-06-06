@@ -38,4 +38,10 @@ public interface IActionPlanService
     /// Idempotent: if already Sent, does NOT create duplicate tasks.
     /// </summary>
     Task<ActionPlanDetailDto> SendActionPlanToEmployeeAsync(int id, int requestingUserId);
+
+    /// <summary>
+    /// Transitions Draft/Edited → Cancelled. Idempotent if already Cancelled.
+    /// Approved/Sent/Completed plans cannot be cancelled.
+    /// </summary>
+    Task<ActionPlanDetailDto> CancelActionPlanAsync(int id, int requestingUserId);
 }
