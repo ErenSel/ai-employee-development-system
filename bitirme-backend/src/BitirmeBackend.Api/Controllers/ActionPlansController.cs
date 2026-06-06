@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
 using BitirmeBackend.Contracts.Requests;
@@ -6,21 +7,38 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BitirmeBackend.Api.Controllers;
 
+[Route("api/action-plans")]
 public class ActionPlansController : BaseController
 {
     private readonly IActionPlanService _actionPlanService;
     private readonly IPdfExportService  _pdfExportService;
+    private readonly IEmployeeRepository _employees;
+    private readonly IAssessmentRepository _assessments;
 
-    public ActionPlansController(IActionPlanService actionPlanService, IPdfExportService pdfExportService)
+    public ActionPlansController(
+        IActionPlanService actionPlanService,
+        IPdfExportService pdfExportService,
+        IEmployeeRepository employees,
+        IAssessmentRepository assessments)
     {
         _actionPlanService = actionPlanService;
         _pdfExportService  = pdfExportService;
+        _employees         = employees;
+        _assessments       = assessments;
     }
 
     [Authorize(Policy = "HrOrManager")]
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GenerateActionPlanRequest request)
     {
+        // Manager team scope: resolve the target employee via the assessment
+        if (CurrentUserRole == "Manager")
+        {
+            var assessment = await _assessments.GetByIdAsync(request.AssessmentId)
+                ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {request.AssessmentId}");
+            await EnsureManagerCanAccessEmployeeAsync(assessment.EmployeeId, _employees);
+        }
+
         var result = await _actionPlanService.GenerateDraftActionPlanAsync(request, CurrentUserId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<object>.Ok(result));
     }

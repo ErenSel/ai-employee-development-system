@@ -6,7 +6,11 @@ namespace BitirmeBackend.Application.Interfaces.Services;
 
 public interface IEmployeeService
 {
-    Task<PagedResponse<EmployeeListItemDto>> GetEmployeesAsync(int pageNumber, int pageSize);
+    /// <summary>
+    /// Paged employee list. When <paramref name="managerId"/> is provided, only that
+    /// manager's direct reports are returned (filter applied inside the repository query).
+    /// </summary>
+    Task<PagedResponse<EmployeeListItemDto>> GetEmployeesAsync(int pageNumber, int pageSize, int? managerId = null);
     Task<EmployeeDetailDto> GetEmployeeByIdAsync(int id);
     Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request);
     Task<EmployeeDetailDto> UpdateEmployeeAsync(int id, UpdateEmployeeRequest request);

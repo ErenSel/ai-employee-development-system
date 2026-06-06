@@ -8,9 +8,12 @@ public class MockEmployeeRepository : IEmployeeRepository
     private static IEnumerable<Employee> Active =>
         MockDataStore.Employees.Where(e => !e.IsDeleted);
 
-    public Task<(IEnumerable<Employee> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
+    public Task<(IEnumerable<Employee> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? managerId = null)
     {
-        var all = Active.ToList();
+        var filtered = managerId.HasValue
+            ? Active.Where(e => e.ManagerId == managerId.Value)
+            : Active;
+        var all = filtered.ToList();
         var paged = all.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
         foreach (var e in paged)
         {

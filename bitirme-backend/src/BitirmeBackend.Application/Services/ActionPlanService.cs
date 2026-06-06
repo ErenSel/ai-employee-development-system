@@ -236,6 +236,10 @@ public class ActionPlanService : IActionPlanService
         var plan = await _actionPlans.GetByIdAsync(planId)
             ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {planId}");
 
+        // Only Draft/Edited plans may be modified
+        if (plan.Status != ActionPlanStatus.Draft && plan.Status != ActionPlanStatus.Edited)
+            throw new ArgumentException("Onaylanmış veya gönderilmiş planda değişiklik yapılamaz.");
+
         var item = await _actionPlans.GetItemByIdAsync(itemId)
             ?? throw new KeyNotFoundException($"Aksiyon planı kalemi bulunamadı: {itemId}");
 
@@ -314,6 +318,10 @@ public class ActionPlanService : IActionPlanService
     {
         var plan = await _actionPlans.GetByIdAsync(planId)
             ?? throw new KeyNotFoundException($"Aksiyon planı bulunamadı: {planId}");
+
+        // Only Draft/Edited plans may be modified
+        if (plan.Status != ActionPlanStatus.Draft && plan.Status != ActionPlanStatus.Edited)
+            throw new ArgumentException("Onaylanmış veya gönderilmiş planda değişiklik yapılamaz.");
 
         var item = await _actionPlans.GetItemByIdAsync(itemId)
             ?? throw new KeyNotFoundException($"Aksiyon planı kalemi bulunamadı: {itemId}");

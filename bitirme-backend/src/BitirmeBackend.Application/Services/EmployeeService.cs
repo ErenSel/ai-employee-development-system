@@ -18,9 +18,9 @@ public class EmployeeService : IEmployeeService
         _assessments = assessments;
     }
 
-    public async Task<PagedResponse<EmployeeListItemDto>> GetEmployeesAsync(int pageNumber, int pageSize)
+    public async Task<PagedResponse<EmployeeListItemDto>> GetEmployeesAsync(int pageNumber, int pageSize, int? managerId = null)
     {
-        var (items, total) = await _employees.GetPagedAsync(pageNumber, pageSize);
+        var (items, total) = await _employees.GetPagedAsync(pageNumber, pageSize, managerId);
         var dtos = items.Select(ToListItem);
         return PagedResponse<EmployeeListItemDto>.Ok(dtos, total, pageNumber, pageSize);
     }

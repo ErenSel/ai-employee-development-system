@@ -76,6 +76,12 @@ public class AssessmentService : IAssessmentService
 
     public async Task<AssessmentScoreDto> UpsertAssessmentScoreAsync(int assessmentId, UpsertAssessmentScoreRequest request)
     {
+        var assessment = await _assessments.GetByIdAsync(assessmentId)
+            ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {assessmentId}");
+
+        if (assessment.Status == AssessmentStatus.Completed)
+            throw new ArgumentException("Tamamlanmış değerlendirmede skor güncellenemez.");
+
         if (request.Score < 0.0 || request.Score > 5.0)
             throw new ArgumentException($"Skor 0 ile 5 arasında olmalıdır. Girilen değer: {request.Score}");
 

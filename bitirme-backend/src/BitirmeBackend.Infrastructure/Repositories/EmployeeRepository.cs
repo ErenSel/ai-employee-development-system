@@ -10,9 +10,11 @@ public class EmployeeRepository : IEmployeeRepository
     private readonly AppDbContext _db;
     public EmployeeRepository(AppDbContext db) => _db = db;
 
-    public async Task<(IEnumerable<Employee> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
+    public async Task<(IEnumerable<Employee> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? managerId = null)
     {
         var query = _db.Employees.Where(e => !e.IsDeleted);
+        if (managerId.HasValue)
+            query = query.Where(e => e.ManagerId == managerId.Value);
         var total = await query.CountAsync();
         var items = await query
             .OrderBy(e => e.Id)

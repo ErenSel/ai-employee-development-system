@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BitirmeBackend.Application.Interfaces.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BitirmeBackend.Api.Controllers;
@@ -22,5 +23,27 @@ public abstract class BaseController : ControllerBase
             var val = User.FindFirstValue("employeeId");
             return val is not null ? int.Parse(val) : null;
         }
+    }
+
+    /// <summary>True if the given employee's ManagerId matches the manager's own employee id.</summary>
+    protected async Task<bool> EmployeeBelongsToManagerAsync(int employeeId, int managerEmployeeId, IEmployeeRepository repo)
+    {
+        var employee = await repo.GetByIdAsync(employeeId);
+        return employee is not null && employee.ManagerId == managerEmployeeId;
+    }
+
+    /// <summary>
+    /// Enforces team scoping for Manager role: throws if the employee is not on the
+    /// caller's team. HR and Admin skip the check entirely.
+    /// </summary>
+    protected async Task EnsureManagerCanAccessEmployeeAsync(int employeeId, IEmployeeRepository repo)
+    {
+        if (CurrentUserRole != "Manager")
+            return;
+
+        var managerEmployeeId = CurrentEmployeeId;
+        if (managerEmployeeId is null ||
+            !await EmployeeBelongsToManagerAsync(employeeId, managerEmployeeId.Value, repo))
+            throw new UnauthorizedAccessException("Bu çalışan sizin ekibinizde bulunmamaktadır.");
     }
 }

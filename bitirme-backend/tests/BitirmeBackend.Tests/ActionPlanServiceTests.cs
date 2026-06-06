@@ -456,4 +456,70 @@ public class ActionPlanServiceTests
         result.Source.Should().Be("EditedAI");
         result.Title.Should().Be("Updated Title");
     }
+
+    [Fact]
+    public async Task UpdateActionPlanItemAsync_SentPlan_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(id: 1, itemCount: 1);
+        plan.Status = ActionPlanStatus.Sent;
+
+        m.ActionPlans.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(plan);
+
+        await svc.Invoking(s => s.UpdateActionPlanItemAsync(1, 5,
+                new UpdateActionPlanItemRequest { Title = "X" }))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*değişiklik yapılamaz*");
+
+        m.ActionPlans.Verify(r => r.UpdateItem(It.IsAny<ActionPlanItem>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateActionPlanItemAsync_ApprovedPlan_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(id: 1, itemCount: 1);
+        plan.Status = ActionPlanStatus.Approved;
+
+        m.ActionPlans.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(plan);
+
+        await svc.Invoking(s => s.UpdateActionPlanItemAsync(1, 5,
+                new UpdateActionPlanItemRequest { Title = "X" }))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*değişiklik yapılamaz*");
+    }
+
+    // ── RemoveItemAsync ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RemoveItemAsync_ApprovedPlan_ThrowsArgumentException()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(id: 1, itemCount: 1);
+        plan.Status = ActionPlanStatus.Approved;
+
+        m.ActionPlans.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(plan);
+
+        await svc.Invoking(s => s.RemoveItemAsync(1, 5))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*değişiklik yapılamaz*");
+
+        m.ActionPlans.Verify(r => r.RemoveItem(It.IsAny<ActionPlanItem>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RemoveItemAsync_DraftPlan_SoftDeletesItem()
+    {
+        var (svc, m) = Build();
+        var plan = MakePlan(id: 1, itemCount: 1);
+        plan.Status = ActionPlanStatus.Draft;
+        var item = new ActionPlanItem { Id = 5, ActionPlanId = 1, IsDeleted = false };
+
+        m.ActionPlans.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(plan);
+        m.ActionPlans.Setup(r => r.GetItemByIdAsync(5)).ReturnsAsync(item);
+
+        await svc.RemoveItemAsync(1, 5);
+
+        m.ActionPlans.Verify(r => r.RemoveItem(item), Times.Once);
+    }
 }

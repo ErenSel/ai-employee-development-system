@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
 using BitirmeBackend.Contracts.Requests;
@@ -9,9 +10,13 @@ namespace BitirmeBackend.Api.Controllers;
 public class AssessmentsController : BaseController
 {
     private readonly IAssessmentService _assessmentService;
+    private readonly IEmployeeRepository _employees;
 
-    public AssessmentsController(IAssessmentService assessmentService) =>
+    public AssessmentsController(IAssessmentService assessmentService, IEmployeeRepository employees)
+    {
         _assessmentService = assessmentService;
+        _employees = employees;
+    }
 
     [Authorize(Policy = "HrOrManager")]
     [HttpGet("{id:int}")]
@@ -25,6 +30,8 @@ public class AssessmentsController : BaseController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAssessmentRequest request)
     {
+        await EnsureManagerCanAccessEmployeeAsync(request.EmployeeId, _employees);
+
         var result = await _assessmentService.CreateAssessmentAsync(request, CurrentUserId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<object>.Ok(result));
     }

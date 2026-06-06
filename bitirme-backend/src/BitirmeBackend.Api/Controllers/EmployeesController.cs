@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
 using BitirmeBackend.Contracts.Requests;
@@ -11,12 +12,14 @@ public class EmployeesController : BaseController
     private readonly IEmployeeService _employeeService;
     private readonly IAssessmentService _assessmentService;
     private readonly IActionPlanService _actionPlanService;
+    private readonly IEmployeeRepository _employees;
 
-    public EmployeesController(IEmployeeService employeeService, IAssessmentService assessmentService, IActionPlanService actionPlanService)
+    public EmployeesController(IEmployeeService employeeService, IAssessmentService assessmentService, IActionPlanService actionPlanService, IEmployeeRepository employees)
     {
         _employeeService = employeeService;
         _assessmentService = assessmentService;
         _actionPlanService = actionPlanService;
+        _employees = employees;
     }
 
     [Authorize(Policy = "HrOrManager")]
@@ -26,15 +29,9 @@ public class EmployeesController : BaseController
         if (pageNumber < 1) return BadRequest(ApiResponse<object>.Fail("pageNumber en az 1 olmalıdır."));
         if (pageSize < 1 || pageSize > 100) return BadRequest(ApiResponse<object>.Fail("pageSize 1 ile 100 arasında olmalıdır."));
 
-        var result = await _employeeService.GetEmployeesAsync(pageNumber, pageSize);
-
-        if (CurrentUserRole == "Manager")
-        {
-            var myEmpId = CurrentEmployeeId;
-            var filtered = result.Data.Where(e => e.ManagerId == myEmpId).ToList();
-            return Ok(PagedResponse<object>.Ok(filtered.Cast<object>(), filtered.Count, pageNumber, pageSize));
-        }
-
+        // Managers are scoped to their own team inside the query (correct paging + total)
+        int? managerFilter = CurrentUserRole == "Manager" ? CurrentEmployeeId : null;
+        var result = await _employeeService.GetEmployeesAsync(pageNumber, pageSize, managerFilter);
         return Ok(result);
     }
 
@@ -74,6 +71,8 @@ public class EmployeesController : BaseController
         if (pageNumber < 1) return BadRequest(ApiResponse<object>.Fail("pageNumber en az 1 olmalıdır."));
         if (pageSize < 1 || pageSize > 100) return BadRequest(ApiResponse<object>.Fail("pageSize 1 ile 100 arasında olmalıdır."));
 
+        await EnsureManagerCanAccessEmployeeAsync(id, _employees);
+
         var result = await _assessmentService.GetEmployeeAssessmentsAsync(id, pageNumber, pageSize);
         return Ok(result);
     }
@@ -82,6 +81,8 @@ public class EmployeesController : BaseController
     [HttpGet("{id:int}/action-plans")]
     public async Task<IActionResult> GetActionPlans(int id)
     {
+        await EnsureManagerCanAccessEmployeeAsync(id, _employees);
+
         var result = await _actionPlanService.GetEmployeeActionPlansAsync(id);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -90,6 +91,8 @@ public class EmployeesController : BaseController
     [HttpGet("{id:int}/features")]
     public async Task<IActionResult> GetFeatures(int id, [FromQuery] int assessmentId)
     {
+        await EnsureManagerCanAccessEmployeeAsync(id, _employees);
+
         try
         {
             var features = await _employeeService.GetEmployeeFeaturesForPredictionAsync(id, assessmentId);
