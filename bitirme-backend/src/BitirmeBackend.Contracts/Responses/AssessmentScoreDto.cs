@@ -7,6 +7,7 @@ public class AssessmentScoreDto
     public int CompetencyId { get; set; }
     public string CompetencyCode { get; set; } = string.Empty;
     public string CompetencyName { get; set; } = string.Empty;
+    public int EvaluatorEmployeeId { get; set; }
     public string EvaluatorType { get; set; } = string.Empty;
     public double Score { get; set; }
 }

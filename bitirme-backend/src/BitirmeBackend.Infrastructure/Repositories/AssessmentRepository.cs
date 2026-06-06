@@ -54,6 +54,13 @@ public class AssessmentRepository : IAssessmentRepository
             !s.IsDeleted);
     }
 
+    public Task<AssessmentScore?> GetScoreAsync(int assessmentId, int competencyId, int evaluatorEmployeeId) =>
+        _db.AssessmentScores.FirstOrDefaultAsync(s =>
+            s.AssessmentId == assessmentId &&
+            s.CompetencyId == competencyId &&
+            s.EvaluatorEmployeeId == evaluatorEmployeeId &&
+            !s.IsDeleted);
+
     public async Task AddAsync(Assessment assessment) => await _db.Assessments.AddAsync(assessment);
 
     public async Task AddScoreAsync(AssessmentScore score) => await _db.AssessmentScores.AddAsync(score);
@@ -61,4 +68,33 @@ public class AssessmentRepository : IAssessmentRepository
     public void Update(Assessment assessment) => assessment.UpdatedAt = DateTime.UtcNow;
 
     public void UpdateScore(AssessmentScore score) => score.UpdatedAt = DateTime.UtcNow;
+
+    // ── 360° evaluator assignments ─────────────────────────────────────────
+
+    public Task<AssessmentAssignment?> GetAssignmentAsync(int assessmentId, int evaluatorEmployeeId) =>
+        _db.AssessmentAssignments
+            .Include(a => a.EvaluatorEmployee)
+            .FirstOrDefaultAsync(a =>
+                a.AssessmentId == assessmentId &&
+                a.EvaluatorEmployeeId == evaluatorEmployeeId &&
+                !a.IsDeleted);
+
+    public async Task AddAssignmentAsync(AssessmentAssignment assignment) =>
+        await _db.AssessmentAssignments.AddAsync(assignment);
+
+    public async Task<List<AssessmentAssignment>> GetAssignmentsByEvaluatorAsync(int evaluatorEmployeeId) =>
+        await _db.AssessmentAssignments
+            .Include(a => a.EvaluatorEmployee)
+            .Include(a => a.Assessment).ThenInclude(ass => ass.Employee)
+            .Include(a => a.Assessment).ThenInclude(ass => ass.Cycle)
+            .Where(a => a.EvaluatorEmployeeId == evaluatorEmployeeId && !a.IsDeleted)
+            .ToListAsync();
+
+    public async Task<List<AssessmentAssignment>> GetAssignmentsByAssessmentAsync(int assessmentId) =>
+        await _db.AssessmentAssignments
+            .Include(a => a.EvaluatorEmployee)
+            .Where(a => a.AssessmentId == assessmentId && !a.IsDeleted)
+            .ToListAsync();
+
+    public void UpdateAssignment(AssessmentAssignment assignment) => assignment.UpdatedAt = DateTime.UtcNow;
 }

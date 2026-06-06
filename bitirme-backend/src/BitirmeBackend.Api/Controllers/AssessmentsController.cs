@@ -64,11 +64,32 @@ public class AssessmentsController : BaseController
     [HttpPut("{id:int}/scores/{scoreId:int}")]
     public async Task<IActionResult> UpdateScore(int id, int scoreId, [FromBody] UpsertAssessmentScoreRequest request)
     {
-        // Validate range before calling service (scoreId is used only for routing; service updates by assessmentId+competencyId+evaluatorType)
+        // Validate range before calling service (scoreId is used only for routing; service
+        // updates by assessmentId + competencyId + evaluatorEmployeeId)
         if (request.Score < 0.0 || request.Score > 5.0)
             return BadRequest(ApiResponse<object>.Fail($"Skor 0 ile 5 arasında olmalıdır. Girilen değer: {request.Score}"));
 
         var result = await _assessmentService.UpsertAssessmentScoreAsync(id, request);
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    // ── 360° evaluator assignments ─────────────────────────────────────────
+
+    [Authorize(Policy = "HrOrManager")]
+    [HttpPost("{id:int}/assignments")]
+    public async Task<IActionResult> CreateAssignment(int id, [FromBody] CreateAssessmentAssignmentRequest request)
+    {
+        // Route id is authoritative for the assessment
+        request.AssessmentId = id;
+        var result = await _assessmentService.CreateAssignmentAsync(request, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    [Authorize(Policy = "HrOrManager")]
+    [HttpGet("{id:int}/assignments")]
+    public async Task<IActionResult> GetAssignments(int id)
+    {
+        var result = await _assessmentService.GetAssignmentsByAssessmentAsync(id);
         return Ok(ApiResponse<object>.Ok(result));
     }
 }

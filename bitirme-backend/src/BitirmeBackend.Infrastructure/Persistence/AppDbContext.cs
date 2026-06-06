@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<AssessmentCycle> AssessmentCycles => Set<AssessmentCycle>();
     public DbSet<Assessment> Assessments => Set<Assessment>();
     public DbSet<AssessmentScore> AssessmentScores => Set<AssessmentScore>();
+    public DbSet<AssessmentAssignment> AssessmentAssignments => Set<AssessmentAssignment>();
     public DbSet<Competency> Competencies => Set<Competency>();
     public DbSet<FeedbackComment> FeedbackComments => Set<FeedbackComment>();
     public DbSet<ModelVersion> ModelVersions => Set<ModelVersion>();

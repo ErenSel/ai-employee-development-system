@@ -12,4 +12,9 @@ public interface IAssessmentService
     Task<List<AssessmentScoreDto>> GetAssessmentScoresAsync(int assessmentId);
     Task<AssessmentScoreDto> UpsertAssessmentScoreAsync(int assessmentId, UpsertAssessmentScoreRequest request);
     Task<PagedResponse<AssessmentDetailDto>> GetEmployeeAssessmentsAsync(int employeeId, int pageNumber, int pageSize);
+
+    // ── 360° evaluator assignments ─────────────────────────────────────────
+    Task<AssessmentAssignmentDto> CreateAssignmentAsync(CreateAssessmentAssignmentRequest request, int requestingUserId);
+    Task<List<MySurveyDto>> GetMySurveysAsync(int evaluatorEmployeeId);
+    Task<List<AssessmentAssignmentDto>> GetAssignmentsByAssessmentAsync(int assessmentId);
 }

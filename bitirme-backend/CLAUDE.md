@@ -84,6 +84,16 @@ BitirmeBackend\
 - Feature üretimi: Employee + Assessment + AssessmentScore/Competency mapping
 - Eksik feature varsa FastAPI'ye gitmeden 400 Bad Request dön, missingFeatures listesi ekle
 
+### 360° Çok Değerlendiricili Mimari
+- `AssessmentScore` benzersiz anahtarı: (AssessmentId, CompetencyId, EvaluatorEmployeeId)
+- `AssessmentAssignment`: her (Assessment, Evaluator) için bir anket; benzersiz index
+- Skor girişi assessment status'üne DEĞİL, evaluator'ın assignment'ına bağlıdır
+  (atama yoksa 400; assignment.IsCompleted ise 400). Evaluator 13 yetkinliği de
+  doldurunca assignment otomatik IsCompleted=true olur.
+- Konsolidasyon: her kategori (Self/Manager/Peer/Subordinate) kendi içinde ortalanır,
+  sonra mevcut kategorilerin ortalaması alınır (eksik kategori atlanır)
+- `EvaluatorType` hâlâ gerekli — konsolidasyonda kategori gruplaması için kullanılır
+
 ### ActionPlanItem
 - Ayrı Status alanı YOK — silme işlemi IsDeleted soft delete ile
 - Item durumu EmployeeTask.Status üzerinden takip edilecek
@@ -135,8 +145,10 @@ GET  /api/employees/{employeeId}/assessments
 POST /api/assessments
 PUT  /api/assessments/{id}/complete
 GET  /api/assessments/{id}/scores
-POST /api/assessments/{id}/scores
+POST /api/assessments/{id}/scores            ← body: EvaluatorEmployeeId zorunlu (360°)
 PUT  /api/assessments/{id}/scores/{scoreId}
+POST /api/assessments/{id}/assignments       ← 360° değerlendirici ata
+GET  /api/assessments/{id}/assignments       ← atamaları listele
 
 POST /api/action-plans/generate
 GET  /api/action-plans/{id}
@@ -149,6 +161,7 @@ POST /api/action-plans/{id}/send
 GET  /api/action-plans/{id}/export-pdf
 
 GET  /api/tasks/my
+GET  /api/tasks/my-surveys                    ← çalışanın doldurması gereken 360° anketleri
 GET  /api/tasks/{id}
 PUT  /api/tasks/{id}/status
 

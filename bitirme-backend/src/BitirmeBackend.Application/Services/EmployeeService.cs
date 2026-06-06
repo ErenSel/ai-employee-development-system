@@ -116,10 +116,20 @@ public class EmployeeService : IEmployeeService
 
         var scores = (await _assessments.GetScoresByAssessmentIdAsync(assessmentId)).ToList();
 
-        // Build competency code → score map
-        var scoreMap = scores
+        // Group every evaluator's score by competency code for 360° consolidation.
+        var scoresByCode = scores
             .Where(s => s.Competency is not null)
-            .ToDictionary(s => s.Competency.Code, s => s.Score);
+            .GroupBy(s => s.Competency.Code)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Consolidation formula: average within each evaluator category (Self/Manager/
+        // Peer/Subordinate), then average across the categories that are present.
+        // e.g. Self + Manager + 2 Peers → (Self + Manager + Avg(Peers)) / 3.
+        double Consolidate(string code) =>
+            scoresByCode[code]
+                .GroupBy(s => s.EvaluatorType)
+                .Select(g => g.Average(x => x.Score))
+                .Average();
 
         // Validate required competency codes
         string[] requiredCodes =
@@ -143,7 +153,7 @@ public class EmployeeService : IEmployeeService
 
         foreach (var code in requiredCodes)
         {
-            if (!scoreMap.ContainsKey(code))
+            if (!scoresByCode.ContainsKey(code))
                 missing.Add(code);
         }
 
@@ -172,19 +182,19 @@ public class EmployeeService : IEmployeeService
             // PerformanceScore sent to ML prefers the assessment's OverallScore;
             // Employee.PerformanceScore is the cached latest/general score fallback.
             PerformanceScore       = assessment.OverallScore ?? emp.PerformanceScore,
-            Core_Communication     = scoreMap["Core_Communication"],
-            Core_Teamwork          = scoreMap["Core_Teamwork"],
-            Core_ProblemSolving    = scoreMap["Core_ProblemSolving"],
-            Core_Adaptability      = scoreMap["Core_Adaptability"],
-            Core_Initiative        = scoreMap["Core_Initiative"],
-            Core_Accountability    = scoreMap["Core_Accountability"],
-            Core_LearningAgility   = scoreMap["Core_LearningAgility"],
-            Core_TimeManagement    = scoreMap["Core_TimeManagement"],
-            Dept_Comp1             = scoreMap["Dept_Comp1"],
-            Dept_Comp2             = scoreMap["Dept_Comp2"],
-            Dept_Comp3             = scoreMap["Dept_Comp3"],
-            Role_Comp1             = scoreMap["Role_Comp1"],
-            Role_Comp2             = scoreMap["Role_Comp2"],
+            Core_Communication     = Consolidate("Core_Communication"),
+            Core_Teamwork          = Consolidate("Core_Teamwork"),
+            Core_ProblemSolving    = Consolidate("Core_ProblemSolving"),
+            Core_Adaptability      = Consolidate("Core_Adaptability"),
+            Core_Initiative        = Consolidate("Core_Initiative"),
+            Core_Accountability    = Consolidate("Core_Accountability"),
+            Core_LearningAgility   = Consolidate("Core_LearningAgility"),
+            Core_TimeManagement    = Consolidate("Core_TimeManagement"),
+            Dept_Comp1             = Consolidate("Dept_Comp1"),
+            Dept_Comp2             = Consolidate("Dept_Comp2"),
+            Dept_Comp3             = Consolidate("Dept_Comp3"),
+            Role_Comp1             = Consolidate("Role_Comp1"),
+            Role_Comp2             = Consolidate("Role_Comp2"),
         };
     }
 

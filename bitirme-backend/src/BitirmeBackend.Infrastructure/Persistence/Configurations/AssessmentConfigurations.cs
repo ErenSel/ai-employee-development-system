@@ -67,6 +67,9 @@ public class AssessmentScoreConfiguration : IEntityTypeConfiguration<AssessmentS
         b.HasIndex(x => x.AssessmentId);
         b.HasIndex(x => x.CompetencyId);
 
+        // 360°: one score per (Assessment, Competency, Evaluator)
+        b.HasIndex(x => new { x.AssessmentId, x.CompetencyId, x.EvaluatorEmployeeId }).IsUnique();
+
         b.HasOne(x => x.Assessment)
             .WithMany(a => a.Scores)
             .HasForeignKey(x => x.AssessmentId)
@@ -75,6 +78,34 @@ public class AssessmentScoreConfiguration : IEntityTypeConfiguration<AssessmentS
         b.HasOne(x => x.Competency)
             .WithMany(c => c.AssessmentScores)
             .HasForeignKey(x => x.CompetencyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasOne(x => x.EvaluatorEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.EvaluatorEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class AssessmentAssignmentConfiguration : IEntityTypeConfiguration<AssessmentAssignment>
+{
+    public void Configure(EntityTypeBuilder<AssessmentAssignment> b)
+    {
+        b.ToTable("AssessmentAssignments");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.EvaluatorType).HasMaxLength(50).IsRequired();
+
+        // One survey per (Assessment, Evaluator)
+        b.HasIndex(x => new { x.AssessmentId, x.EvaluatorEmployeeId }).IsUnique();
+
+        b.HasOne(x => x.Assessment)
+            .WithMany()
+            .HasForeignKey(x => x.AssessmentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasOne(x => x.EvaluatorEmployee)
+            .WithMany()
+            .HasForeignKey(x => x.EvaluatorEmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

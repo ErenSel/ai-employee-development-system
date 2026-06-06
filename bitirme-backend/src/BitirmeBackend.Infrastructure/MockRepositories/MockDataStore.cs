@@ -77,6 +77,19 @@ internal static class MockDataStore
             PerformanceScore = 3.8, Attrition = "No", IsActive = true,
             CreatedAt = DateTime.UtcNow
         },
+        new Employee
+        {
+            Id = 4, EmployeeCode = "EMP003", FullName = "Zeynep Arslan",
+            Email = "zeynep.arslan@demo.com", Age = 30, Gender = "Female",
+            DepartmentId = 1, JobRoleId = 1, ManagerId = 2,
+            Education = "3", EducationField = "Marketing",
+            BusinessTravel = "Travel_Rarely", MaritalStatus = "Married",
+            DistanceFromHome = 7, EnvironmentSatisfaction = 3, JobSatisfaction = 4,
+            WorkLifeBalance = 3, TotalWorkingYears = 7, YearsAtCompany = 4,
+            YearsInCurrentRole = 2, YearsWithCurrManager = 2,
+            PerformanceScore = 3.6, Attrition = "No", IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        },
     ];
 
     // ── Users (passwords as BCrypt hashes) ───────────────────────────────
@@ -148,22 +161,75 @@ internal static class MockDataStore
         }
     ];
 
-    // ── Assessment Scores (for Employee 1, covering all 13 competency codes) ──
+    // ── Assessment Scores (360°: 4 evaluators × 13 competencies for Assessment 1) ──
+    // Evaluators: Self=Emp1(Ayşe), Manager=Emp2(Mehmet), Peer=Emp3(Ali), Peer=Emp4(Zeynep)
     public static List<AssessmentScore> AssessmentScores { get; } =
     [
-        new AssessmentScore { Id = 1,  AssessmentId = 1, CompetencyId = 1,  EvaluatorType = EvaluatorType.Manager, Score = 3.2, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 2,  AssessmentId = 1, CompetencyId = 2,  EvaluatorType = EvaluatorType.Manager, Score = 3.7, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 3,  AssessmentId = 1, CompetencyId = 3,  EvaluatorType = EvaluatorType.Manager, Score = 3.5, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 4,  AssessmentId = 1, CompetencyId = 4,  EvaluatorType = EvaluatorType.Manager, Score = 3.1, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 5,  AssessmentId = 1, CompetencyId = 5,  EvaluatorType = EvaluatorType.Manager, Score = 3.0, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 6,  AssessmentId = 1, CompetencyId = 6,  EvaluatorType = EvaluatorType.Manager, Score = 3.8, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 7,  AssessmentId = 1, CompetencyId = 7,  EvaluatorType = EvaluatorType.Manager, Score = 3.4, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 8,  AssessmentId = 1, CompetencyId = 8,  EvaluatorType = EvaluatorType.Manager, Score = 2.9, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 9,  AssessmentId = 1, CompetencyId = 9,  EvaluatorType = EvaluatorType.Manager, Score = 3.5, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 10, AssessmentId = 1, CompetencyId = 10, EvaluatorType = EvaluatorType.Manager, Score = 3.0, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 11, AssessmentId = 1, CompetencyId = 11, EvaluatorType = EvaluatorType.Manager, Score = 3.6, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 12, AssessmentId = 1, CompetencyId = 12, EvaluatorType = EvaluatorType.Manager, Score = 3.4, CreatedAt = DateTime.UtcNow },
-        new AssessmentScore { Id = 13, AssessmentId = 1, CompetencyId = 13, EvaluatorType = EvaluatorType.Manager, Score = 3.1, CreatedAt = DateTime.UtcNow },
+        // Self (EvaluatorEmployeeId = 1)
+        new AssessmentScore { Id = 1,  AssessmentId = 1, CompetencyId = 1,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.5, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 2,  AssessmentId = 1, CompetencyId = 2,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.8, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 3,  AssessmentId = 1, CompetencyId = 3,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.6, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 4,  AssessmentId = 1, CompetencyId = 4,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.3, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 5,  AssessmentId = 1, CompetencyId = 5,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.2, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 6,  AssessmentId = 1, CompetencyId = 6,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.9, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 7,  AssessmentId = 1, CompetencyId = 7,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.6, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 8,  AssessmentId = 1, CompetencyId = 8,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.1, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 9,  AssessmentId = 1, CompetencyId = 9,  EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.7, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 10, AssessmentId = 1, CompetencyId = 10, EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.2, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 11, AssessmentId = 1, CompetencyId = 11, EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.8, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 12, AssessmentId = 1, CompetencyId = 12, EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.6, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 13, AssessmentId = 1, CompetencyId = 13, EvaluatorEmployeeId = 1, EvaluatorType = EvaluatorType.Self, Score = 3.3, CreatedAt = DateTime.UtcNow },
+        // Manager (EvaluatorEmployeeId = 2)
+        new AssessmentScore { Id = 14, AssessmentId = 1, CompetencyId = 1,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.2, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 15, AssessmentId = 1, CompetencyId = 2,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.7, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 16, AssessmentId = 1, CompetencyId = 3,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.5, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 17, AssessmentId = 1, CompetencyId = 4,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.1, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 18, AssessmentId = 1, CompetencyId = 5,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.0, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 19, AssessmentId = 1, CompetencyId = 6,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.8, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 20, AssessmentId = 1, CompetencyId = 7,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.4, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 21, AssessmentId = 1, CompetencyId = 8,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 2.9, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 22, AssessmentId = 1, CompetencyId = 9,  EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.5, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 23, AssessmentId = 1, CompetencyId = 10, EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.0, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 24, AssessmentId = 1, CompetencyId = 11, EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.6, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 25, AssessmentId = 1, CompetencyId = 12, EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.4, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 26, AssessmentId = 1, CompetencyId = 13, EvaluatorEmployeeId = 2, EvaluatorType = EvaluatorType.Manager, Score = 3.1, CreatedAt = DateTime.UtcNow },
+        // Peer 1 — Ali Demir (EvaluatorEmployeeId = 3)
+        new AssessmentScore { Id = 27, AssessmentId = 1, CompetencyId = 1,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.0, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 28, AssessmentId = 1, CompetencyId = 2,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.5, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 29, AssessmentId = 1, CompetencyId = 3,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.3, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 30, AssessmentId = 1, CompetencyId = 4,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.0, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 31, AssessmentId = 1, CompetencyId = 5,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 2.9, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 32, AssessmentId = 1, CompetencyId = 6,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.6, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 33, AssessmentId = 1, CompetencyId = 7,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.2, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 34, AssessmentId = 1, CompetencyId = 8,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 2.8, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 35, AssessmentId = 1, CompetencyId = 9,  EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.3, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 36, AssessmentId = 1, CompetencyId = 10, EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 2.9, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 37, AssessmentId = 1, CompetencyId = 11, EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.4, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 38, AssessmentId = 1, CompetencyId = 12, EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.2, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 39, AssessmentId = 1, CompetencyId = 13, EvaluatorEmployeeId = 3, EvaluatorType = EvaluatorType.Peer, Score = 3.0, CreatedAt = DateTime.UtcNow },
+        // Peer 2 — Zeynep Arslan (EvaluatorEmployeeId = 4)
+        new AssessmentScore { Id = 40, AssessmentId = 1, CompetencyId = 1,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.1, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 41, AssessmentId = 1, CompetencyId = 2,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.6, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 42, AssessmentId = 1, CompetencyId = 3,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.4, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 43, AssessmentId = 1, CompetencyId = 4,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.2, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 44, AssessmentId = 1, CompetencyId = 5,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.0, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 45, AssessmentId = 1, CompetencyId = 6,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.7, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 46, AssessmentId = 1, CompetencyId = 7,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.3, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 47, AssessmentId = 1, CompetencyId = 8,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.0, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 48, AssessmentId = 1, CompetencyId = 9,  EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.4, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 49, AssessmentId = 1, CompetencyId = 10, EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.1, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 50, AssessmentId = 1, CompetencyId = 11, EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.5, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 51, AssessmentId = 1, CompetencyId = 12, EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.3, CreatedAt = DateTime.UtcNow },
+        new AssessmentScore { Id = 52, AssessmentId = 1, CompetencyId = 13, EvaluatorEmployeeId = 4, EvaluatorType = EvaluatorType.Peer, Score = 3.1, CreatedAt = DateTime.UtcNow },
+    ];
+
+    // ── Assessment Assignments (360° evaluators for Assessment 1) ─────────────
+    public static List<AssessmentAssignment> AssessmentAssignments { get; } =
+    [
+        new AssessmentAssignment { Id = 1, AssessmentId = 1, EvaluatorEmployeeId = 1, EvaluatorType = "Self",    IsCompleted = true,  CompletedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+        new AssessmentAssignment { Id = 2, AssessmentId = 1, EvaluatorEmployeeId = 2, EvaluatorType = "Manager", IsCompleted = true,  CompletedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+        new AssessmentAssignment { Id = 3, AssessmentId = 1, EvaluatorEmployeeId = 3, EvaluatorType = "Peer",    IsCompleted = true,  CompletedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+        new AssessmentAssignment { Id = 4, AssessmentId = 1, EvaluatorEmployeeId = 4, EvaluatorType = "Peer",    IsCompleted = false, CompletedAt = null,            CreatedAt = DateTime.UtcNow },
     ];
 
     // ── Action Catalog (all 47 ML action labels, shared with the EF Core seed) ─────
@@ -199,7 +265,8 @@ internal static class MockDataStore
     public static int NextUserId { get; set; } = 10;
     public static int NextEmployeeId { get; set; } = 10;
     public static int NextAssessmentId { get; set; } = 10;
-    public static int NextAssessmentScoreId { get; set; } = 20;
+    public static int NextAssessmentScoreId { get; set; } = 100;
+    public static int NextAssessmentAssignmentId { get; set; } = 10;
     public static int NextRefreshTokenId { get; set; } = 1;
     public static int NextActionPlanId { get; set; } = 1;
     public static int NextActionPlanItemId { get; set; } = 1;

@@ -13,6 +13,8 @@ public class AssessmentService : IAssessmentService
     private readonly IAssessmentRepository _assessments;
     private readonly IActionPlanRepository _actionPlans;
 
+    private const int RequiredCompetencyCount = 13;
+
     public AssessmentService(IAssessmentRepository assessments, IActionPlanRepository actionPlans)
     {
         _assessments = assessments;
@@ -76,46 +78,119 @@ public class AssessmentService : IAssessmentService
 
     public async Task<AssessmentScoreDto> UpsertAssessmentScoreAsync(int assessmentId, UpsertAssessmentScoreRequest request)
     {
-        var assessment = await _assessments.GetByIdAsync(assessmentId)
+        _ = await _assessments.GetByIdAsync(assessmentId)
             ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {assessmentId}");
-
-        if (assessment.Status == AssessmentStatus.Completed)
-            throw new ArgumentException("Tamamlanmış değerlendirmede skor güncellenemez.");
 
         if (request.Score < 0.0 || request.Score > 5.0)
             throw new ArgumentException($"Skor 0 ile 5 arasında olmalıdır. Girilen değer: {request.Score}");
 
-        var existing = await _assessments.GetScoreAsync(assessmentId, request.CompetencyId, request.EvaluatorType);
+        // 360°: scoring is gated by the evaluator's assignment, not the assessment status.
+        var assignment = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId)
+            ?? throw new ArgumentException("Bu değerlendirme için atama bulunamadı.");
 
+        if (assignment.IsCompleted)
+            throw new ArgumentException("Bu anketi zaten tamamladınız.");
+
+        // Upsert keyed by (AssessmentId, CompetencyId, EvaluatorEmployeeId)
+        var existing = await _assessments.GetScoreAsync(assessmentId, request.CompetencyId, request.EvaluatorEmployeeId);
+
+        AssessmentScore saved;
         if (existing is not null)
         {
             existing.Score     = request.Score;
             existing.UpdatedAt = DateTime.UtcNow;
             _assessments.UpdateScore(existing);
 
-            // Reload with competency nav attached
             var allScores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
-            var refreshed = allScores.FirstOrDefault(s => s.Id == existing.Id) ?? existing;
-            return ToScoreDto(refreshed);
+            saved = allScores.FirstOrDefault(s => s.Id == existing.Id) ?? existing;
+        }
+        else
+        {
+            if (!Enum.TryParse<EvaluatorType>(request.EvaluatorType, ignoreCase: true, out var evalType))
+                throw new ArgumentException($"Geçersiz EvaluatorType: {request.EvaluatorType}");
+
+            var score = new AssessmentScore
+            {
+                AssessmentId        = assessmentId,
+                CompetencyId        = request.CompetencyId,
+                EvaluatorEmployeeId = request.EvaluatorEmployeeId,
+                EvaluatorType       = evalType,
+                Score               = request.Score
+            };
+
+            await _assessments.AddScoreAsync(score);
+
+            var scores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
+            saved = scores.FirstOrDefault(s => s.Id == score.Id) ?? score;
         }
 
-        if (!Enum.TryParse<EvaluatorType>(request.EvaluatorType, ignoreCase: true, out var evalType))
-            throw new ArgumentException($"Geçersiz EvaluatorType: {request.EvaluatorType}");
+        // Mark the survey complete once the evaluator has scored all 13 competencies.
+        var scoredCompetencies = (await _assessments.GetScoresByAssessmentIdAsync(assessmentId))
+            .Where(s => s.EvaluatorEmployeeId == request.EvaluatorEmployeeId)
+            .Select(s => s.CompetencyId)
+            .Distinct()
+            .Count();
 
-        var score = new AssessmentScore
+        if (scoredCompetencies >= RequiredCompetencyCount)
         {
-            AssessmentId  = assessmentId,
-            CompetencyId  = request.CompetencyId,
-            EvaluatorType = evalType,
-            Score         = request.Score
+            assignment.IsCompleted = true;
+            assignment.CompletedAt = DateTime.UtcNow;
+            _assessments.UpdateAssignment(assignment);
+        }
+
+        return ToScoreDto(saved);
+    }
+
+    public async Task<AssessmentAssignmentDto> CreateAssignmentAsync(CreateAssessmentAssignmentRequest request, int requestingUserId)
+    {
+        _ = await _assessments.GetByIdAsync(request.AssessmentId)
+            ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {request.AssessmentId}");
+
+        var existing = await _assessments.GetAssignmentAsync(request.AssessmentId, request.EvaluatorEmployeeId);
+        if (existing is not null)
+            throw new ArgumentException("Bu değerlendirici zaten atanmış.");
+
+        var assignment = new AssessmentAssignment
+        {
+            AssessmentId        = request.AssessmentId,
+            EvaluatorEmployeeId = request.EvaluatorEmployeeId,
+            EvaluatorType       = request.EvaluatorType,
+            IsCompleted         = false
         };
 
-        await _assessments.AddScoreAsync(score);
+        await _assessments.AddAssignmentAsync(assignment);
 
-        // Reload with competency nav attached via GetScoresByAssessmentId
-        var scores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
-        var saved  = scores.FirstOrDefault(s => s.Id == score.Id) ?? score;
-        return ToScoreDto(saved);
+        // Reload with evaluator nav attached
+        var saved = await _assessments.GetAssignmentAsync(request.AssessmentId, request.EvaluatorEmployeeId) ?? assignment;
+        return ToAssignmentDto(saved);
+    }
+
+    public async Task<List<MySurveyDto>> GetMySurveysAsync(int evaluatorEmployeeId)
+    {
+        var assignments = await _assessments.GetAssignmentsByEvaluatorAsync(evaluatorEmployeeId);
+
+        return assignments
+            .Where(a => !a.IsCompleted
+                && a.Assessment is not null
+                && (a.Assessment.Status == AssessmentStatus.Draft || a.Assessment.Status == AssessmentStatus.Completed))
+            .Select(a => new MySurveyDto
+            {
+                AssignmentId    = a.Id,
+                AssessmentId    = a.AssessmentId,
+                EmployeeId      = a.Assessment.EmployeeId,
+                EmployeeName    = a.Assessment.Employee?.FullName ?? string.Empty,
+                CycleId         = a.Assessment.CycleId,
+                CycleName       = a.Assessment.Cycle?.Name ?? string.Empty,
+                EvaluatorType   = a.EvaluatorType,
+                CompetencyCount = RequiredCompetencyCount
+            })
+            .ToList();
+    }
+
+    public async Task<List<AssessmentAssignmentDto>> GetAssignmentsByAssessmentAsync(int assessmentId)
+    {
+        var assignments = await _assessments.GetAssignmentsByAssessmentAsync(assessmentId);
+        return assignments.Select(ToAssignmentDto).ToList();
     }
 
     public async Task<PagedResponse<AssessmentDetailDto>> GetEmployeeAssessmentsAsync(
@@ -153,12 +228,24 @@ public class AssessmentService : IAssessmentService
 
     private static AssessmentScoreDto ToScoreDto(AssessmentScore s) => new()
     {
-        Id             = s.Id,
-        AssessmentId   = s.AssessmentId,
-        CompetencyId   = s.CompetencyId,
-        CompetencyCode = s.Competency?.Code ?? string.Empty,
-        CompetencyName = s.Competency?.Name ?? string.Empty,
-        EvaluatorType  = s.EvaluatorType.ToString(),
-        Score          = s.Score
+        Id                  = s.Id,
+        AssessmentId        = s.AssessmentId,
+        CompetencyId        = s.CompetencyId,
+        CompetencyCode      = s.Competency?.Code ?? string.Empty,
+        CompetencyName      = s.Competency?.Name ?? string.Empty,
+        EvaluatorEmployeeId = s.EvaluatorEmployeeId,
+        EvaluatorType       = s.EvaluatorType.ToString(),
+        Score               = s.Score
+    };
+
+    private static AssessmentAssignmentDto ToAssignmentDto(AssessmentAssignment a) => new()
+    {
+        Id                    = a.Id,
+        AssessmentId          = a.AssessmentId,
+        EvaluatorEmployeeId   = a.EvaluatorEmployeeId,
+        EvaluatorEmployeeName = a.EvaluatorEmployee?.FullName ?? string.Empty,
+        EvaluatorType         = a.EvaluatorType,
+        IsCompleted           = a.IsCompleted,
+        CompletedAt           = a.CompletedAt
     };
 }

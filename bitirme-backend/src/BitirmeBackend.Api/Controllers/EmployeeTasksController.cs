@@ -11,9 +11,26 @@ namespace BitirmeBackend.Api.Controllers;
 public class EmployeeTasksController : BaseController
 {
     private readonly IEmployeeTaskService _taskService;
+    private readonly IAssessmentService _assessmentService;
 
-    public EmployeeTasksController(IEmployeeTaskService taskService) =>
+    public EmployeeTasksController(IEmployeeTaskService taskService, IAssessmentService assessmentService)
+    {
         _taskService = taskService;
+        _assessmentService = assessmentService;
+    }
+
+    /// <summary>Returns the 360° surveys the calling employee still needs to fill in.</summary>
+    [Authorize(Policy = "Authenticated")]
+    [HttpGet("my-surveys")]
+    public async Task<IActionResult> GetMySurveys()
+    {
+        var empId = CurrentEmployeeId;
+        if (empId is null)
+            return BadRequest(ApiResponse<object>.Fail("Bu endpoint sadece çalışan kaydı olan kullanıcılar için kullanılabilir."));
+
+        var surveys = await _assessmentService.GetMySurveysAsync(empId.Value);
+        return Ok(ApiResponse<object>.Ok(surveys));
+    }
 
     /// <summary>Returns the calling employee's task list (paged).</summary>
     [Authorize(Policy = "Authenticated")]

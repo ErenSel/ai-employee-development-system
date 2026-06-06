@@ -52,6 +52,13 @@ public class MockAssessmentRepository : IAssessmentRepository
             s.EvaluatorType.ToString() == evaluatorType &&
             !s.IsDeleted));
 
+    public Task<AssessmentScore?> GetScoreAsync(int assessmentId, int competencyId, int evaluatorEmployeeId) =>
+        Task.FromResult(MockDataStore.AssessmentScores.FirstOrDefault(s =>
+            s.AssessmentId == assessmentId &&
+            s.CompetencyId == competencyId &&
+            s.EvaluatorEmployeeId == evaluatorEmployeeId &&
+            !s.IsDeleted));
+
     public Task AddAsync(Assessment assessment)
     {
         assessment.Id = MockDataStore.NextAssessmentId++;
@@ -70,4 +77,56 @@ public class MockAssessmentRepository : IAssessmentRepository
 
     public void Update(Assessment assessment) => assessment.UpdatedAt = DateTime.UtcNow;
     public void UpdateScore(AssessmentScore score) => score.UpdatedAt = DateTime.UtcNow;
+
+    // ── 360° evaluator assignments ─────────────────────────────────────────
+
+    private static AssessmentAssignment Hydrate(AssessmentAssignment a)
+    {
+        a.EvaluatorEmployee = MockDataStore.Employees.FirstOrDefault(e => e.Id == a.EvaluatorEmployeeId);
+        var assessment = MockDataStore.Assessments.FirstOrDefault(x => x.Id == a.AssessmentId);
+        if (assessment is not null)
+        {
+            assessment.Employee = MockDataStore.Employees.FirstOrDefault(e => e.Id == assessment.EmployeeId)!;
+            assessment.Cycle    = MockDataStore.AssessmentCycles.FirstOrDefault(c => c.Id == assessment.CycleId)!;
+            a.Assessment = assessment;
+        }
+        return a;
+    }
+
+    public Task<AssessmentAssignment?> GetAssignmentAsync(int assessmentId, int evaluatorEmployeeId)
+    {
+        var a = MockDataStore.AssessmentAssignments.FirstOrDefault(x =>
+            x.AssessmentId == assessmentId &&
+            x.EvaluatorEmployeeId == evaluatorEmployeeId &&
+            !x.IsDeleted);
+        return Task.FromResult(a is null ? null : Hydrate(a));
+    }
+
+    public Task AddAssignmentAsync(AssessmentAssignment assignment)
+    {
+        assignment.Id = MockDataStore.NextAssessmentAssignmentId++;
+        assignment.CreatedAt = DateTime.UtcNow;
+        MockDataStore.AssessmentAssignments.Add(assignment);
+        return Task.CompletedTask;
+    }
+
+    public Task<List<AssessmentAssignment>> GetAssignmentsByEvaluatorAsync(int evaluatorEmployeeId)
+    {
+        var list = MockDataStore.AssessmentAssignments
+            .Where(x => x.EvaluatorEmployeeId == evaluatorEmployeeId && !x.IsDeleted)
+            .Select(Hydrate)
+            .ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<List<AssessmentAssignment>> GetAssignmentsByAssessmentAsync(int assessmentId)
+    {
+        var list = MockDataStore.AssessmentAssignments
+            .Where(x => x.AssessmentId == assessmentId && !x.IsDeleted)
+            .Select(Hydrate)
+            .ToList();
+        return Task.FromResult(list);
+    }
+
+    public void UpdateAssignment(AssessmentAssignment assignment) => assignment.UpdatedAt = DateTime.UtcNow;
 }
