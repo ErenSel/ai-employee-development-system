@@ -17,11 +17,12 @@ public class MlPredictionClient : IMlPredictionClient
     private readonly HttpClient _http;
     private readonly ILogger<MlPredictionClient> _logger;
 
-    // Outgoing request: no naming policy so Dictionary string keys are sent as-is
-    // (e.g. "Core_Communication", "Dept_Comp1" — FastAPI is case-sensitive).
+    // Outgoing request: camelCase for object properties (employeeId, features) so
+    // FastAPI receives expected keys, but DictionaryKeyPolicy=null preserves dictionary
+    // string keys as-is (e.g. "Core_Communication", "Dept_Comp1" — FastAPI is case-sensitive).
     private static readonly JsonSerializerOptions _serializeOptions = new()
     {
-        PropertyNamingPolicy = null,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DictionaryKeyPolicy  = null
     };
 
