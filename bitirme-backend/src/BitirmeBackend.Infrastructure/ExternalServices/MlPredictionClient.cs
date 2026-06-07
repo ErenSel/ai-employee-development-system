@@ -17,9 +17,18 @@ public class MlPredictionClient : IMlPredictionClient
     private readonly HttpClient _http;
     private readonly ILogger<MlPredictionClient> _logger;
 
-    private static readonly JsonSerializerOptions _jsonOptions = new()
+    // Outgoing request: no naming policy so Dictionary string keys are sent as-is
+    // (e.g. "Core_Communication", "Dept_Comp1" — FastAPI is case-sensitive).
+    private static readonly JsonSerializerOptions _serializeOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = null,
+        DictionaryKeyPolicy  = null
+    };
+
+    // Incoming response: case-insensitive so C# property names are matched flexibly.
+    private static readonly JsonSerializerOptions _deserializeOptions = new()
+    {
+        PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true
     };
 
@@ -33,7 +42,7 @@ public class MlPredictionClient : IMlPredictionClient
     {
         _logger.LogInformation("ML servisine tahmin isteği gönderiliyor. EmployeeId={EmployeeId}, k={K}", request.EmployeeId, k);
 
-        var json = JsonSerializer.Serialize(request, _jsonOptions);
+        var json = JsonSerializer.Serialize(request, _serializeOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         HttpResponseMessage response;
@@ -62,7 +71,7 @@ public class MlPredictionClient : IMlPredictionClient
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<MlPredictionResponse>(responseJson, _jsonOptions)
+        var result = JsonSerializer.Deserialize<MlPredictionResponse>(responseJson, _deserializeOptions)
             ?? throw new InvalidOperationException("ML servisi boş yanıt döndürdü.");
 
         _logger.LogInformation("ML tahmin yanıtı alındı. EmployeeId={EmployeeId}, RecommendedCount={Count}",
