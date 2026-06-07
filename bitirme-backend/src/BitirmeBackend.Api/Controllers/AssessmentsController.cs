@@ -73,6 +73,15 @@ public class AssessmentsController : BaseController
         return Ok(ApiResponse<object>.Ok(result));
     }
 
+    /// <summary>Submits an evaluator's full set of competency scores in one request.</summary>
+    [Authorize(Policy = "Authenticated")]
+    [HttpPost("{id:int}/scores/bulk")]
+    public async Task<IActionResult> BulkUpsertScores(int id, [FromBody] BulkUpsertAssessmentScoreRequest request)
+    {
+        var result = await _assessmentService.BulkUpsertScoresAsync(id, request);
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
     // ── 360° evaluator assignments ─────────────────────────────────────────
 
     [Authorize(Policy = "HrOrManager")]

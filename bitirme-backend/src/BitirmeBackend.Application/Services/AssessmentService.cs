@@ -48,6 +48,16 @@ public class AssessmentService : IAssessmentService
 
         await _assessments.AddAsync(assessment);
 
+        // FIX 4: auto-create the Self assignment so the employee can self-evaluate
+        // without HR having to add it manually.
+        await _assessments.AddAssignmentAsync(new AssessmentAssignment
+        {
+            AssessmentId        = assessment.Id,
+            EvaluatorEmployeeId = assessment.EmployeeId,
+            EvaluatorType       = "Self",
+            IsCompleted         = false
+        });
+
         var created = await _assessments.GetByIdWithDetailsAsync(assessment.Id)
             ?? throw new InvalidOperationException("Oluşturulan değerlendirme yüklenemedi.");
         return ToDetail(created);
@@ -136,6 +146,9 @@ public class AssessmentService : IAssessmentService
             assignment.IsCompleted = true;
             assignment.CompletedAt = DateTime.UtcNow;
             _assessments.UpdateAssignment(assignment);
+
+            // FIX 1: auto-complete the assessment once every assignment is done.
+            await TryAutoCompleteAssessmentAsync(assessmentId);
         }
 
         return ToScoreDto(saved);
@@ -149,6 +162,18 @@ public class AssessmentService : IAssessmentService
         var existing = await _assessments.GetAssignmentAsync(request.AssessmentId, request.EvaluatorEmployeeId);
         if (existing is not null)
             throw new ArgumentException("Bu değerlendirici zaten atanmış.");
+
+        // FIX 3: Self and Manager are unique per assessment; Peer/Subordinate may repeat.
+        var isSelf    = string.Equals(request.EvaluatorType, "Self",    StringComparison.OrdinalIgnoreCase);
+        var isManager = string.Equals(request.EvaluatorType, "Manager", StringComparison.OrdinalIgnoreCase);
+        if (isSelf || isManager)
+        {
+            var assignments = await _assessments.GetAssignmentsByAssessmentAsync(request.AssessmentId);
+            if (assignments.Any(a => string.Equals(a.EvaluatorType, request.EvaluatorType, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException(isSelf
+                    ? "Bu değerlendirme için Self ataması zaten mevcut."
+                    : "Bu değerlendirme için Manager ataması zaten mevcut.");
+        }
 
         var assignment = new AssessmentAssignment
         {
@@ -191,6 +216,87 @@ public class AssessmentService : IAssessmentService
     {
         var assignments = await _assessments.GetAssignmentsByAssessmentAsync(assessmentId);
         return assignments.Select(ToAssignmentDto).ToList();
+    }
+
+    public async Task<AssessmentAssignmentDto> BulkUpsertScoresAsync(int assessmentId, BulkUpsertAssessmentScoreRequest request)
+    {
+        _ = await _assessments.GetByIdAsync(assessmentId)
+            ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {assessmentId}");
+
+        var assignment = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId)
+            ?? throw new ArgumentException("Bu değerlendirme için atama bulunamadı.");
+
+        if (assignment.IsCompleted)
+            throw new ArgumentException("Bu anketi zaten tamamladınız.");
+
+        // Validate every score before persisting anything.
+        foreach (var item in request.Scores)
+        {
+            if (item.Score < 0.0 || item.Score > 5.0)
+                throw new ArgumentException($"Skor 0 ile 5 arasında olmalıdır. Girilen değer: {item.Score}");
+        }
+
+        if (!Enum.TryParse<EvaluatorType>(assignment.EvaluatorType, ignoreCase: true, out var evalType))
+            throw new ArgumentException($"Geçersiz EvaluatorType: {assignment.EvaluatorType}");
+
+        // Upsert each score keyed by (AssessmentId, CompetencyId, EvaluatorEmployeeId).
+        foreach (var item in request.Scores)
+        {
+            var existing = await _assessments.GetScoreAsync(assessmentId, item.CompetencyId, request.EvaluatorEmployeeId);
+            if (existing is not null)
+            {
+                existing.Score     = item.Score;
+                existing.UpdatedAt = DateTime.UtcNow;
+                _assessments.UpdateScore(existing);
+            }
+            else
+            {
+                await _assessments.AddScoreAsync(new AssessmentScore
+                {
+                    AssessmentId        = assessmentId,
+                    CompetencyId        = item.CompetencyId,
+                    EvaluatorEmployeeId = request.EvaluatorEmployeeId,
+                    EvaluatorType       = evalType,
+                    Score               = item.Score
+                });
+            }
+        }
+
+        // Mark the survey complete once all 13 competencies are scored.
+        var scoredCompetencies = (await _assessments.GetScoresByAssessmentIdAsync(assessmentId))
+            .Where(s => s.EvaluatorEmployeeId == request.EvaluatorEmployeeId)
+            .Select(s => s.CompetencyId)
+            .Distinct()
+            .Count();
+
+        if (scoredCompetencies >= RequiredCompetencyCount)
+        {
+            assignment.IsCompleted = true;
+            assignment.CompletedAt = DateTime.UtcNow;
+            _assessments.UpdateAssignment(assignment);
+
+            // FIX 1: auto-complete the assessment once every assignment is done.
+            await TryAutoCompleteAssessmentAsync(assessmentId);
+        }
+
+        var saved = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId) ?? assignment;
+        return ToAssignmentDto(saved);
+    }
+
+    // Sets the assessment to Completed once every one of its evaluator assignments is done.
+    private async Task TryAutoCompleteAssessmentAsync(int assessmentId)
+    {
+        var assignments = await _assessments.GetAssignmentsByAssessmentAsync(assessmentId);
+        if (assignments.Count == 0 || !assignments.All(a => a.IsCompleted))
+            return;
+
+        var assessment = await _assessments.GetByIdAsync(assessmentId);
+        if (assessment is not null && assessment.Status != AssessmentStatus.Completed)
+        {
+            assessment.Status    = AssessmentStatus.Completed;
+            assessment.UpdatedAt = DateTime.UtcNow;
+            _assessments.Update(assessment);
+        }
     }
 
     public async Task<PagedResponse<AssessmentDetailDto>> GetEmployeeAssessmentsAsync(

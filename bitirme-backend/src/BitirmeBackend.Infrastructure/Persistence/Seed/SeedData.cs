@@ -146,6 +146,12 @@ public static class SeedData
                 Id = 4, FullName = "Ayşe Kaya", Email = "employee@demo.com",
                 PasswordHash = "$2a$11$uDROGAG.L2IJ/zDLlS/UjOXaiCpVo7/QCchgwykadmU3HLEhjR/A2", // Employee1234!
                 RoleId = 4, EmployeeId = 1, IsActive = true, CreatedAt = Now
+            },
+            new User
+            {
+                Id = 5, FullName = "Zeynep Arslan", Email = "zeynep.arslan@demo.com",
+                PasswordHash = "$2a$11$uDROGAG.L2IJ/zDLlS/UjOXaiCpVo7/QCchgwykadmU3HLEhjR/A2", // Employee1234!
+                RoleId = 4, EmployeeId = 4, IsActive = true, CreatedAt = Now
             });
 
         b.Entity<Assessment>().HasData(

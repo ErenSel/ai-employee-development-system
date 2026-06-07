@@ -93,6 +93,12 @@ BitirmeBackend\
 - Konsolidasyon: her kategori (Self/Manager/Peer/Subordinate) kendi içinde ortalanır,
   sonra mevcut kategorilerin ortalaması alınır (eksik kategori atlanır)
 - `EvaluatorType` hâlâ gerekli — konsolidasyonda kategori gruplaması için kullanılır
+- Assessment oluşturulduğunda Self ataması OTOMATİK eklenir (çalışan kendini değerlendirir)
+- Self ve Manager her assessment için BENZERSİZ; Peer/Subordinate birden fazla olabilir
+- Bir evaluator 13 yetkinliği de doldurunca assignment otomatik IsCompleted=true olur;
+  tüm assignment'lar tamamlanınca assessment otomatik Completed olur (manuel complete'e gerek yok)
+- Bulk skor girişi: `POST /scores/bulk` ile bir evaluator tüm skorları tek istekte gönderir
+- Demo kullanıcısı: zeynep.arslan@demo.com / Employee1234! (EmployeeId=4, bekleyen Peer anketi)
 
 ### ActionPlanItem
 - Ayrı Status alanı YOK — silme işlemi IsDeleted soft delete ile
@@ -146,6 +152,7 @@ POST /api/assessments
 PUT  /api/assessments/{id}/complete
 GET  /api/assessments/{id}/scores
 POST /api/assessments/{id}/scores            ← body: EvaluatorEmployeeId zorunlu (360°)
+POST /api/assessments/{id}/scores/bulk       ← tek istekte tüm skorlar (Authenticated)
 PUT  /api/assessments/{id}/scores/{scoreId}
 POST /api/assessments/{id}/assignments       ← 360° değerlendirici ata
 GET  /api/assessments/{id}/assignments       ← atamaları listele

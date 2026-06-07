@@ -17,4 +17,7 @@ public interface IAssessmentService
     Task<AssessmentAssignmentDto> CreateAssignmentAsync(CreateAssessmentAssignmentRequest request, int requestingUserId);
     Task<List<MySurveyDto>> GetMySurveysAsync(int evaluatorEmployeeId);
     Task<List<AssessmentAssignmentDto>> GetAssignmentsByAssessmentAsync(int assessmentId);
+
+    /// <summary>Submits all of one evaluator's competency scores at once; completes the survey when all 13 are scored.</summary>
+    Task<AssessmentAssignmentDto> BulkUpsertScoresAsync(int assessmentId, BulkUpsertAssessmentScoreRequest request);
 }
