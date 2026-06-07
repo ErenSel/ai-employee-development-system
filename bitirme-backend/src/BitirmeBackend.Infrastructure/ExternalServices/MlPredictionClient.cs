@@ -43,6 +43,7 @@ public class MlPredictionClient : IMlPredictionClient
         _logger.LogInformation("ML servisine tahmin isteği gönderiliyor. EmployeeId={EmployeeId}, k={K}", request.EmployeeId, k);
 
         var json = JsonSerializer.Serialize(request, _serializeOptions);
+        _logger.LogInformation("ML request payload: {Payload}", json);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         HttpResponseMessage response;
@@ -60,6 +61,8 @@ public class MlPredictionClient : IMlPredictionClient
             _logger.LogWarning(ex, "ML servisine bağlanılamadı.");
             throw;
         }
+
+        _logger.LogInformation("ML response status: {Status}", response.StatusCode);
 
         if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
