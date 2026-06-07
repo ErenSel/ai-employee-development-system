@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace BitirmeBackend.Infrastructure.Persistence;
 
@@ -17,8 +20,16 @@ public static class DbInitializer
 
     public static async Task InitializeAsync(AppDbContext db)
     {
-        await db.Database.MigrateAsync();
-        await SyncIdentitySequencesAsync(db);
+        try
+        {
+            await db.Database.MigrateAsync();
+            await SyncIdentitySequencesAsync(db);
+        }
+        catch (Exception ex)
+        {
+            var logger = db.GetInfrastructure().GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
+            logger.LogError(ex, "Database migration failed. App will continue without migration.");
+        }
     }
 
     private static async Task SyncIdentitySequencesAsync(AppDbContext db)

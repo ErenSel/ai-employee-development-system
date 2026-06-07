@@ -1,0 +1,121 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict EVvQ1hH0ARjiRKajOoX3i9YCWjkwcI1OHEi7O28j53MhABsQecrFERS278aabLo
+
+-- Dumped from database version 18.4
+-- Dumped by pg_dump version 18.4
+
+-- Started on 2026-06-03 15:51:47
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 219 (class 1259 OID 16389)
+-- Name: ActionCatalogs; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActionCatalogs" (
+    "ActionId" character varying(50) NOT NULL,
+    "TargetCompetency" character varying(50) NOT NULL,
+    "ActionCategory" character varying(50) NOT NULL,
+    "ActionType" character varying(50) NOT NULL,
+    "Difficulty" character varying(20) NOT NULL,
+    "EstimatedEffortHours" integer NOT NULL,
+    "MinScore" numeric(3,2) NOT NULL,
+    "MaxScore" numeric(3,2) NOT NULL,
+    "ContentData" jsonb NOT NULL
+);
+
+
+ALTER TABLE public."ActionCatalogs" OWNER TO postgres;
+
+--
+-- TOC entry 5004 (class 0 OID 16389)
+-- Dependencies: 219
+-- Data for Name: ActionCatalogs; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActionCatalogs" ("ActionId", "TargetCompetency", "ActionCategory", "ActionType", "Difficulty", "EstimatedEffortHours", "MinScore", "MaxScore", "ContentData") FROM stdin;
+CORE_COMM_01	Core_Communication	Core	Behavioral Practice	High	24	1.00	1.70	{"title": "Structured Communication Fundamentals", "resource": "https://www.coursera.org/learn/effective-communication-specialization", "description": "Mesaj netliği ve amaç belirleme üzerine haftalık pratikler.", "delivery_type": "Self-guided + Practice"}
+CORE_COMM_02	Core_Communication	Core	Guided Exercise	Medium-High	16	1.80	2.50	{"title": "Effective Feedback Application", "resource": "https://www.udemy.com/course/giving-and-receiving-feedback-at-work/", "description": "Açık ifade ve duygu yönetimi üzerine egzersizler.", "delivery_type": "Workshop"}
+CORE_COMM_03	Core_Communication	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Clarity & Conciseness Tune-Up", "resource": "https://www.youtube.com/watch?v=HAnw168huqA", "description": "Mesajları sadeleştirme ve ana mesajı öne çıkarma alıştırmaları.", "delivery_type": "Digital Module"}
+CORE_COMM_04	Core_Communication	Core	Reflection	Low	4	3.30	4.00	{"title": "Communication Self-Review", "resource": "https://hbr.org/2022/11/a-checklist-for-better-communication", "description": "İletişim örneklerini değerlendirme ve kısa analiz.", "delivery_type": "Self Reflection"}
+CORE_TEAM_01	Core_Teamwork	Core	Behavioral Practice	High	24	1.00	1.70	{"title": "Collaboration Basics Immersion", "resource": "https://www.coursera.org/learn/teamwork-skills-effective-communication", "description": "Takım içi rol paylaşımı ve ortak hedef takibi görevleri.", "delivery_type": "Guided Practice"}
+CORE_TEAM_02	Core_Teamwork	Core	Scenario Based Learning	Medium-High	16	1.80	2.50	{"title": "Conflict Handling in Teams", "resource": "https://www.pluralsight.com/courses/conflict-resolution-workplace", "description": "Anlaşmazlıklarda iş birliğini koruma üzerine senaryolar.", "delivery_type": "Workshop"}
+CORE_TEAM_03	Core_Teamwork	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Effective Collaboration Habits", "resource": "https://www.youtube.com/watch?v=1qE5L2z5T0M", "description": "Bilgi paylaşımı ve destek alışkanlıklarını güçlendirme.", "delivery_type": "Digital Module"}
+CORE_TEAM_04	Core_Teamwork	Core	Reflection	Low	4	3.30	4.00	{"title": "Team Contribution Review", "resource": "https://medium.com/management-matters/the-ultimate-teamwork-checklist", "description": "Takım içindeki katkının ve destek düzeyinin öz değerlendirmesi.", "delivery_type": "Self Reflection"}
+CORE_PROB_01	Core_ProblemSolving	Core	Analytical Practice	High	24	1.00	1.70	{"title": "Problem Decomposition Fundamentals", "resource": "https://www.coursera.org/learn/problem-solving", "description": "Problemleri alt bileşenlerine ayırma çalışmaları.", "delivery_type": "Guided Practice"}
+CORE_PROB_02	Core_ProblemSolving	Core	Scenario Based Learning	Medium-High	16	1.80	2.50	{"title": "Root Cause Analysis Practice", "resource": "https://www.udemy.com/course/root-cause-analysis/", "description": "Yüzeysel belirtiler yerine temel nedenleri belirleme vakaları.", "delivery_type": "Workshop"}
+CORE_PROB_03	Core_ProblemSolving	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Solution Evaluation Techniques", "resource": "https://www.youtube.com/watch?v=JhhC_kP11mI", "description": "Çözüm alternatiflerini değerlendirme alıştırmaları.", "delivery_type": "Digital Module"}
+CORE_PROB_04	Core_ProblemSolving	Core	Reflection	Low	4	3.30	4.00	{"title": "Problem-Solving Self Review", "resource": "https://hbr.org/2018/03/how-to-solve-tough-problems", "description": "Çözülen problemlerin yaklaşımını gözden geçirme.", "delivery_type": "Self Reflection"}
+CORE_ADAPT_01	Core_Adaptability	Core	Behavioral Practice	High	24	1.00	1.70	{"title": "Change Readiness Foundations", "resource": "https://www.coursera.org/learn/change-management", "description": "Yeni durumlara uyum sağlama egzersizleri.", "delivery_type": "Guided Practice"}
+CORE_ADAPT_02	Core_Adaptability	Core	Scenario Based Learning	Medium-High	16	1.80	2.50	{"title": "Responding to Change Scenarios", "resource": "https://www.udemy.com/course/adaptability-in-the-workplace/", "description": "Beklenmeyen durumlarda hızlı uyum senaryoları.", "delivery_type": "Workshop"}
+CORE_ADAPT_03	Core_Adaptability	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Flexibility & Adjustment Skills", "resource": "https://www.youtube.com/watch?v=xZ_vJzY2T0w", "description": "Yaklaşım değiştirme becerilerini destekleyen içerikler.", "delivery_type": "Digital Module"}
+CORE_ADAPT_04	Core_Adaptability	Core	Reflection	Low	4	3.30	4.00	{"title": "Adaptability Self Assessment", "resource": "https://medium.com/adaptability-self-assessment", "description": "Değişimlere verilen tepkilerin öz analizi.", "delivery_type": "Self Reflection"}
+CORE_TIME_01	Core_TimeManagement	Core	Behavioral Practice	High	24	1.00	1.70	{"title": "Time Awareness & Priority Reset", "resource": "https://www.coursera.org/learn/work-smarter-not-harder", "description": "Önceliklendirme ve planlama alışkanlığı kazandırma.", "delivery_type": "Guided Practice"}
+CORE_TIME_02	Core_TimeManagement	Core	Scenario Based Learning	Medium-High	16	1.80	2.50	{"title": "Managing Competing Priorities", "resource": "https://www.udemy.com/course/time-management-mastery/", "description": "İşler arasında öncelik belirleme vakaları.", "delivery_type": "Workshop"}
+CORE_TIME_03	Core_TimeManagement	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Efficiency & Focus Techniques", "resource": "https://www.youtube.com/watch?v=snAhsXyO3Co", "description": "Odaklanma ve işleri tamamlama uygulamaları.", "delivery_type": "Digital Module"}
+CORE_TIME_04	Core_TimeManagement	Core	Reflection	Low	4	3.30	4.00	{"title": "Personal Time Review", "resource": "https://hbr.org/2019/01/how-to-actually-save-time", "description": "Zaman kullanım alışkanlıklarının değerlendirilmesi.", "delivery_type": "Self Reflection"}
+CORE_INIT_01	Core_Initiative	Core	Behavioral Practice	High	24	1.00	1.70	{"title": "Proactive Mindset Activation", "resource": "https://www.udemy.com/course/taking-initiative-at-work/", "description": "Sorumluluk alma ve aksiyon başlatma egzersizleri.", "delivery_type": "Guided Practice"}
+CORE_INIT_02	Core_Initiative	Core	Scenario Based Learning	Medium-High	16	1.80	2.50	{"title": "Taking Ownership", "resource": "https://www.linkedin.com/learning/developing-resourcefulness", "description": "Yönlendirme olmayan durumlarda sorumluluk senaryoları.", "delivery_type": "Workshop"}
+CORE_INIT_03	Core_Initiative	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Opportunity Spotting Habits", "resource": "https://www.youtube.com/watch?v=3M_E-J_3j8s", "description": "Geliştirme fırsatlarını fark etme içerikleri.", "delivery_type": "Digital Module"}
+CORE_INIT_04	Core_Initiative	Core	Reflection	Low	4	3.30	4.00	{"title": "Initiative Self Check", "resource": "https://hbr.org/2021/08/when-to-take-initiative-at-work", "description": "Alınan inisiyatiflerin öz değerlendirmesi.", "delivery_type": "Self Reflection"}
+CORE_ACCT_01	Core_Accountability	Core	Behavioral Practice	High	24	1.00	1.70	{"title": "Responsibility Ownership", "resource": "https://www.coursera.org/learn/accountability", "description": "İşlerin sahiplenilmesi ve çözüm üretme.", "delivery_type": "Guided Practice"}
+CORE_ACCT_02	Core_Accountability	Core	Scenario Based Learning	Medium-High	16	1.80	2.50	{"title": "Handling Mistakes", "resource": "https://www.udemy.com/course/extreme-ownership/", "description": "Hata durumlarında sorumluluk alma vakaları.", "delivery_type": "Workshop"}
+CORE_ACCT_03	Core_Accountability	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Commitment Tracking Habits", "resource": "https://www.youtube.com/watch?v=T_lCsqXhYhM", "description": "Verilen sözleri takip etme alışkanlıkları.", "delivery_type": "Digital Module"}
+CORE_ACCT_04	Core_Accountability	Core	Reflection	Low	4	3.30	4.00	{"title": "Accountability Self Review", "resource": "https://hbr.org/2020/11/how-to-hold-yourself-accountable", "description": "Sahiplenme düzeyinin analizi.", "delivery_type": "Self Reflection"}
+CORE_LEARN_01	Core_LearningAgility	Core	Behavioral Practice	High	24	1.00	1.70	{"title": "Learning Habit Foundations", "resource": "https://www.coursera.org/learn/learning-how-to-learn", "description": "Yeni bilgi edinme ve işe uyarlama görevleri.", "delivery_type": "Guided Practice"}
+CORE_LEARN_02	Core_LearningAgility	Core	Scenario Based Learning	Medium-High	16	1.80	2.50	{"title": "Learning from New Situations", "resource": "https://www.udemy.com/course/growth-mindset/", "description": "Bilinmeyen konularda hızlı öğrenme senaryoları.", "delivery_type": "Workshop"}
+CORE_LEARN_03	Core_LearningAgility	Core	Micro Learning	Medium	8	2.60	3.20	{"title": "Continuous Improvement", "resource": "https://www.youtube.com/watch?v=pN34FNbOKXc", "description": "Kısa sürede bilgi edinme içerikleri.", "delivery_type": "Digital Module"}
+CORE_LEARN_04	Core_LearningAgility	Core	Reflection	Low	4	3.30	4.00	{"title": "Learning Agility Self Check", "resource": "https://hbr.org/2015/09/improve-your-ability-to-learn", "description": "Yeni konuların işe yansıtılması analizi.", "delivery_type": "Self Reflection"}
+DEPT_COMP1_01	Dept_Comp1	Department	PracticalTask	Medium	3	1.00	1.90	{"Operations": {"title": "Operasyon Planı (Ops_OperationsPlanning)", "resource": "https://www.smartsheet.com/free-weekly-schedule-templates", "delivery_type": "Task"}, "Technology": {"title": "PR Refactor (Tech_CodingQuality)", "resource": "https://github.com/collections/clean-code", "delivery_type": "Task"}, "Human Resources": {"title": "İlan Metni (HR_Recruitment)", "resource": "https://www.shrm.org/resourcesandtools/tools-and-samples/hr-forms/pages/jobposting_template.aspx", "delivery_type": "Task"}, "Sales & Marketing": {"title": "Müşteri Pitch (Sales_SalesSkill)", "resource": "https://blog.hubspot.com/sales/sales-pitch-examples", "delivery_type": "Task"}, "Finance & Accounting": {"title": "KPI Analizi (Fin_FinancialAnalysis)", "resource": "https://corporatefinanceinstitute.com/resources/excel/kpi-dashboard-template/", "delivery_type": "Task"}}
+DEPT_COMP1_02	Dept_Comp1	Department	Coaching	Medium	2	2.00	2.90	{"Operations": {"title": "Planlama Checklist", "resource": "https://safetyculture.com/checklists/operations-management/", "delivery_type": "Checklist"}, "Technology": {"title": "Kod İnceleme Checklist", "resource": "https://github.com/integrations/feature/code-review", "delivery_type": "Checklist"}, "Human Resources": {"title": "İşe Alım Checklist", "resource": "https://resources.workable.com/tutorial/recruitment-process-checklist", "delivery_type": "Checklist"}, "Sales & Marketing": {"title": "Satış Görüşmesi Checklist", "resource": "https://www.salesforce.com/resources/articles/sales-call-planning-checklist/", "delivery_type": "Checklist"}, "Finance & Accounting": {"title": "Kontrol Checklist", "resource": "https://www.aicpa.org/resources/toolkit/financial-statement-checklist", "delivery_type": "Checklist"}}
+DEPT_COMP1_03	Dept_Comp1	Department	MicroLearning	Easy	2	3.00	4.00	{"Operations": {"title": "Planlama 101", "resource": "https://www.coursera.org/learn/operations-management", "delivery_type": "Course"}, "Technology": {"title": "Kod Kalitesi", "resource": "https://www.pluralsight.com/courses/clean-code", "delivery_type": "Course"}, "Human Resources": {"title": "Mülakat Akışı", "resource": "https://www.coursera.org/learn/recruiting-hiring-onboarding-employees", "delivery_type": "Course"}, "Sales & Marketing": {"title": "Satış Temelleri", "resource": "https://www.udemy.com/course/sales-training-practical-sales-techniques/", "delivery_type": "Course"}, "Finance & Accounting": {"title": "Veri Okuma", "resource": "https://www.coursera.org/learn/financial-accounting-basics", "delivery_type": "Course"}}
+DEPT_COMP2_01	Dept_Comp2	Department	Simulation	Hard	5	1.00	1.90	{"Operations": {"title": "Teslimat Senaryosu", "resource": "https://www.edx.org/course/supply-chain-logistics", "delivery_type": "Exercise"}, "Technology": {"title": "Ölçeklenebilir Sistem Senaryosu", "resource": "https://github.com/donnemartin/system-design-primer", "delivery_type": "Exercise"}, "Human Resources": {"title": "Disiplin Süreci Senaryosu", "resource": "https://www.shrm.org/resourcesandtools/tools-and-samples/hr-forms/pages/disciplinary-action-form.aspx", "delivery_type": "Exercise"}, "Sales & Marketing": {"title": "Pazarlık Senaryosu", "resource": "https://www.udemy.com/course/negotiation-secrets-for-master-negotiators/", "delivery_type": "Exercise"}, "Finance & Accounting": {"title": "Hata Bulma Senaryosu", "resource": "https://corporatefinanceinstitute.com/course/accounting-fundamentals/", "delivery_type": "Exercise"}}
+DEPT_COMP2_02	Dept_Comp2	Department	MicroLearning	Medium	4	2.00	2.90	{"Operations": {"title": "Lojistik Süreçleri", "resource": "https://www.coursera.org/learn/supply-chain-management", "delivery_type": "Course"}, "Technology": {"title": "Sistem Tasarımı", "resource": "https://www.udacity.com/course/software-architecture-design--ud821", "delivery_type": "Course"}, "Human Resources": {"title": "İş Hukuku", "resource": "https://www.coursera.org/learn/human-resources-management", "delivery_type": "Course"}, "Sales & Marketing": {"title": "Müzakere Stratejileri", "resource": "https://www.coursera.org/learn/negotiation-skills", "delivery_type": "Course"}, "Finance & Accounting": {"title": "Muhasebe İlkeleri", "resource": "https://www.coursera.org/learn/financial-reporting", "delivery_type": "Course"}}
+DEPT_COMP2_03	Dept_Comp2	Department	Reflection	Easy	2	3.00	4.00	{"Operations": {"title": "Lojistik Değerlendirme", "resource": "https://miro.com/templates/logistics-planning/", "delivery_type": "Template"}, "Technology": {"title": "Tasarım Değerlendirme", "resource": "https://miro.com/templates/architecture-diagram/", "delivery_type": "Template"}, "Human Resources": {"title": "Politika Değerlendirme", "resource": "https://miro.com/templates/hr-strategy/", "delivery_type": "Template"}, "Sales & Marketing": {"title": "Müzakere Değerlendirme", "resource": "https://miro.com/templates/sales-pipeline/", "delivery_type": "Template"}, "Finance & Accounting": {"title": "Muhasebe Değerlendirme", "resource": "https://miro.com/templates/financial-analysis/", "delivery_type": "Template"}}
+DEPT_COMP3_01	Dept_Comp3	Department	Coaching	Hard	4	1.00	1.90	{"Operations": {"title": "Süreç Koçluğu", "resource": "https://kanbanize.com/lean-management/improvement/kaizen", "delivery_type": "Checklist"}, "Technology": {"title": "Test Planı Koçluğu", "resource": "https://www.guru99.com/software-testing-checklist.html", "delivery_type": "Checklist"}, "Human Resources": {"title": "Zor Çalışan Koçluğu", "resource": "https://hbr.org/2015/02/how-to-coach-a-difficult-employee", "delivery_type": "Checklist"}, "Sales & Marketing": {"title": "CRM Koçluğu", "resource": "https://www.hubspot.com/resources/crm-implementation-checklist", "delivery_type": "Checklist"}, "Finance & Accounting": {"title": "Bordro İnceleme", "resource": "https://www.adp.com/resources/articles-and-insights/articles/p/payroll-checklist.aspx", "delivery_type": "Checklist"}}
+DEPT_COMP3_02	Dept_Comp3	Department	MicroLearning	Medium	3	2.00	2.90	{"Operations": {"title": "Optimizasyon", "resource": "https://www.coursera.org/learn/process-improvement", "delivery_type": "Course"}, "Technology": {"title": "QA Süreçleri", "resource": "https://www.udacity.com/course/software-testing--cs258", "delivery_type": "Course"}, "Human Resources": {"title": "Çalışan İlişkileri", "resource": "https://www.coursera.org/learn/employee-relations", "delivery_type": "Course"}, "Sales & Marketing": {"title": "CRM Temelleri", "resource": "https://www.coursera.org/learn/crm", "delivery_type": "Course"}, "Finance & Accounting": {"title": "Bordro Süreci", "resource": "https://www.udemy.com/course/payroll-management/", "delivery_type": "Course"}}
+DEPT_COMP3_03	Dept_Comp3	Department	MicroLearning	Medium	3	3.00	4.00	{"Operations": {"title": "Süreç Quiz", "resource": "https://sixsigmastudyguide.com/lean-six-sigma-quiz/", "delivery_type": "Course"}, "Technology": {"title": "QA Quiz", "resource": "https://www.istqb.org/certifications/agile-tester", "delivery_type": "Course"}, "Human Resources": {"title": "Employee Relations Quiz", "resource": "https://www.shrm.org/certification/quiz", "delivery_type": "Course"}, "Sales & Marketing": {"title": "CRM Quiz", "resource": "https://academy.hubspot.com/courses/inbound-sales", "delivery_type": "Course"}, "Finance & Accounting": {"title": "Bordro Quiz", "resource": "https://www.aicpa.org/resources/quiz", "delivery_type": "Course"}}
+ROLE_COMP1_01	Role_Comp1	Role	Simulation	Hard	6	1.00	1.90	{"Accountant": {"title": "Finansal Model Simülasyonu", "resource": "https://corporatefinanceinstitute.com/resources/excel/financial-modeling-simulations/", "delivery_type": "Exercise"}, "HR Specialist": {"title": "Dokümantasyon Simülasyonu", "resource": "https://www.shrm.org/resourcesandtools/tools-and-samples/hr-forms/pages/hr-simulations.aspx", "delivery_type": "Exercise"}, "Data Scientist": {"title": "Model Simülasyonu", "resource": "https://www.kaggle.com/competitions", "delivery_type": "Exercise"}, "Sales Executive": {"title": "Kapanış Simülasyonu", "resource": "https://trailhead.salesforce.com/en/content/learn/trails/sales-cloud-basics", "delivery_type": "Exercise"}, "Software Engineer": {"title": "Hata Ayıklama Simülasyonu", "resource": "https://github.com/topics/coding-challenges", "delivery_type": "Exercise"}, "Operations Manager": {"title": "Planlama Simülasyonu", "resource": "https://www.edx.org/learn/operations-management", "delivery_type": "Exercise"}}
+ROLE_COMP1_02	Role_Comp1	Role	PracticalTask	Medium	4	2.00	2.90	{"Accountant": {"title": "Defter Tutma Görevi", "resource": "https://www.journalofaccountancy.com/issues.html", "delivery_type": "Task"}, "HR Specialist": {"title": "Dokümantasyon Görevi", "resource": "https://www.shrm.org/resourcesandtools/tools-and-samples/policies/pages/default.aspx", "delivery_type": "Task"}, "Data Scientist": {"title": "Veri Model Görevi", "resource": "https://paperswithcode.com/sota", "delivery_type": "Task"}, "Sales Executive": {"title": "Pipeline Yönetimi", "resource": "https://blog.hubspot.com/sales/sales-strategy-template", "delivery_type": "Task"}, "Software Engineer": {"title": "Problem Parçalama", "resource": "https://github.com/search?q=architecture+katas", "delivery_type": "Task"}, "Operations Manager": {"title": "Operasyon Görevi", "resource": "https://www.smartsheet.com/operations-management-templates", "delivery_type": "Task"}}
+ROLE_COMP1_03	Role_Comp1	Role	MicroLearning	Easy	2	3.00	4.00	{"Accountant": {"title": "Muhasebe Eğitimi", "resource": "https://www.coursera.org/learn/financial-accounting-basics", "delivery_type": "Course"}, "HR Specialist": {"title": "Dokümantasyon Eğitimi", "resource": "https://www.coursera.org/learn/managing-human-resources", "delivery_type": "Course"}, "Data Scientist": {"title": "Veri Bilimi Eğitim", "resource": "https://www.coursera.org/specializations/machine-learning-introduction", "delivery_type": "Course"}, "Sales Executive": {"title": "Satış Eğitimi", "resource": "https://academy.hubspot.com/courses/inbound-sales", "delivery_type": "Course"}, "Software Engineer": {"title": "Mimari Eğitim", "resource": "https://www.pluralsight.com/courses/software-architecture-fundamentals", "delivery_type": "Course"}, "Operations Manager": {"title": "Yönetim Eğitimi", "resource": "https://www.coursera.org/learn/operations-management", "delivery_type": "Course"}}
+ROLE_COMP2_01	Role_Comp2	Role	PracticalTask	Medium	3	1.00	1.90	{"Accountant": {"title": "Mevzuat Görevi", "resource": "https://corporatefinanceinstitute.com/resources/templates/", "delivery_type": "Task"}, "HR Specialist": {"title": "İç Destek Görevi", "resource": "https://hbr.org/2020/01/hr-strategy-task-guide", "delivery_type": "Task"}, "Data Scientist": {"title": "Model Yorumlama", "resource": "https://www.kaggle.com/datasets", "delivery_type": "Task"}, "Sales Executive": {"title": "CRM Görevi", "resource": "https://www.salesforce.com/resources/articles/pipeline-management/", "delivery_type": "Task"}, "Software Engineer": {"title": "Mimari Görev", "resource": "https://github.com/collections/choosing-projects", "delivery_type": "Task"}, "Operations Manager": {"title": "İzleme Görevi", "resource": "https://safetyculture.com/templates/operations/", "delivery_type": "Task"}}
+ROLE_COMP2_02	Role_Comp2	Role	Coaching	Medium	2	2.00	2.90	{"Accountant": {"title": "Mevzuat Koçluk", "resource": "https://www.aicpa.org/resources/toolkit/month-end-close-checklist", "delivery_type": "Checklist"}, "HR Specialist": {"title": "İç Destek Koçluk", "resource": "https://resources.workable.com/hr-checklists", "delivery_type": "Checklist"}, "Data Scientist": {"title": "Model Koçluk", "resource": "https://developers.google.com/machine-learning/crash-course/production-ml-systems", "delivery_type": "Checklist"}, "Sales Executive": {"title": "CRM Koçluk", "resource": "https://blog.hubspot.com/sales/sales-coaching-checklist", "delivery_type": "Checklist"}, "Software Engineer": {"title": "Mimari Koçluk", "resource": "https://github.com/integrations/feature/code-review", "delivery_type": "Checklist"}, "Operations Manager": {"title": "İzleme Koçluk", "resource": "https://www.proces.st/operations-management-checklist/", "delivery_type": "Checklist"}}
+ROLE_COMP2_03	Role_Comp2	Role	Reflection	Easy	1	3.00	4.00	{"Accountant": {"title": "Mevzuat Şablon", "resource": "https://miro.com/templates/budget-planning/", "delivery_type": "Template"}, "HR Specialist": {"title": "İç Destek Şablonu", "resource": "https://miro.com/templates/hr-retro/", "delivery_type": "Template"}, "Data Scientist": {"title": "Model Şablon", "resource": "https://miro.com/templates/data-model/", "delivery_type": "Template"}, "Sales Executive": {"title": "CRM Şablon", "resource": "https://miro.com/templates/sales-funnel/", "delivery_type": "Template"}, "Software Engineer": {"title": "Mimari Şablon", "resource": "https://miro.com/templates/sprint-retrospective/", "delivery_type": "Template"}, "Operations Manager": {"title": "İzleme Şablon", "resource": "https://miro.com/templates/lean-canvas/", "delivery_type": "Template"}}
+\.
+
+
+--
+-- TOC entry 4856 (class 2606 OID 16404)
+-- Name: ActionCatalogs ActionCatalogs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActionCatalogs"
+    ADD CONSTRAINT "ActionCatalogs_pkey" PRIMARY KEY ("ActionId");
+
+
+-- Completed on 2026-06-03 15:51:47
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict EVvQ1hH0ARjiRKajOoX3i9YCWjkwcI1OHEi7O28j53MhABsQecrFERS278aabLo
+
