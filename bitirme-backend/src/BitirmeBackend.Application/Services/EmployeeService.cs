@@ -34,6 +34,12 @@ public class EmployeeService : IEmployeeService
 
     public async Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request)
     {
+        if (!await _employees.DepartmentExistsAsync(request.DepartmentId))
+            throw new ArgumentException($"Departman bulunamadı: {request.DepartmentId}");
+
+        if (!await _employees.JobRoleExistsAsync(request.JobRoleId))
+            throw new ArgumentException($"İş rolü bulunamadı: {request.JobRoleId}");
+
         var emp = new Employee
         {
             EmployeeCode          = request.EmployeeCode,

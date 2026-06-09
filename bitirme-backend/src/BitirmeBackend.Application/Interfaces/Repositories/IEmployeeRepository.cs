@@ -15,4 +15,6 @@ public interface IEmployeeRepository
     Task<bool> ExistsByCodeAsync(string employeeCode);
     Task AddAsync(Employee employee);
     void Update(Employee employee);
+    Task<bool> DepartmentExistsAsync(int departmentId);
+    Task<bool> JobRoleExistsAsync(int jobRoleId);
 }
