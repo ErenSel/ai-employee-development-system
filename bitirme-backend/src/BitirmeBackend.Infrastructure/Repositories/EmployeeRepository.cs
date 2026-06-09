@@ -47,4 +47,10 @@ public class EmployeeRepository : IEmployeeRepository
     public async Task AddAsync(Employee employee) => await _db.Employees.AddAsync(employee);
 
     public void Update(Employee employee) => employee.UpdatedAt = DateTime.UtcNow;
+
+    public Task<bool> DepartmentExistsAsync(int departmentId) =>
+        _db.Departments.AnyAsync(d => d.Id == departmentId && !d.IsDeleted);
+
+    public Task<bool> JobRoleExistsAsync(int jobRoleId) =>
+        _db.JobRoles.AnyAsync(j => j.Id == jobRoleId && !j.IsDeleted);
 }

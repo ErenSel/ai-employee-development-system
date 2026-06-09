@@ -77,7 +77,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly",    p => p.RequireRole("Admin"));
-    options.AddPolicy("HrOrManager", p => p.RequireRole("HR", "Manager"));
+    options.AddPolicy("HrOrManager", p => p.RequireRole("Admin", "HR", "Manager"));
     options.AddPolicy("EmployeeOnly", p => p.RequireRole("Employee"));
     options.AddPolicy("Authenticated", p => p.RequireAuthenticatedUser());
 });
