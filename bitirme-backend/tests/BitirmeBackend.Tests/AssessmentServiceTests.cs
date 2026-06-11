@@ -209,6 +209,56 @@ public class AssessmentServiceTests
         result[0].CompetencyCount.Should().Be(13);
     }
 
+    [Fact]
+    public async Task GetAssessmentScoresForEvaluatorAsync_ReturnsOnlyEvaluatorScores()
+    {
+        var (svc, assessments, _, _) = Build();
+        assessments.Setup(r => r.GetScoresByAssessmentIdAsync(1))
+                   .ReturnsAsync(new List<AssessmentScore>
+                   {
+                       new() { Id = 1, AssessmentId = 1, CompetencyId = 1, EvaluatorEmployeeId = 5, Score = 3.0 },
+                       new() { Id = 2, AssessmentId = 1, CompetencyId = 1, EvaluatorEmployeeId = 6, Score = 4.0 },
+                       new() { Id = 3, AssessmentId = 1, CompetencyId = 2, EvaluatorEmployeeId = 5, Score = 2.5 }
+                   });
+
+        var result = await svc.GetAssessmentScoresForEvaluatorAsync(1, evaluatorEmployeeId: 5);
+
+        result.Should().HaveCount(2);
+        result.Should().OnlyContain(s => s.EvaluatorEmployeeId == 5);
+    }
+
+    [Fact]
+    public async Task HasActiveAssignmentForEmployeeAsync_ActiveTargetAssignment_ReturnsTrue()
+    {
+        var (svc, assessments, _, _) = Build();
+        assessments.Setup(r => r.GetAssignmentsByEvaluatorAsync(5))
+                   .ReturnsAsync(new List<AssessmentAssignment>
+                   {
+                       new()
+                       {
+                           AssessmentId = 1,
+                           EvaluatorEmployeeId = 5,
+                           IsCompleted = false,
+                           Assessment = new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft }
+                       }
+                   });
+
+        var result = await svc.HasActiveAssignmentForEmployeeAsync(employeeId: 10, evaluatorEmployeeId: 5);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HasAssignmentAsync_AssignmentExists_ReturnsTrue()
+    {
+        var (svc, assessments, _, _) = Build();
+        assessments.Setup(r => r.GetAssignmentAsync(1, 5)).ReturnsAsync(Assignment(5, completed: false));
+
+        var result = await svc.HasAssignmentAsync(assessmentId: 1, evaluatorEmployeeId: 5);
+
+        result.Should().BeTrue();
+    }
+
     // ── FIX 1: auto-complete assessment ───────────────────────────────────────
 
     [Fact]

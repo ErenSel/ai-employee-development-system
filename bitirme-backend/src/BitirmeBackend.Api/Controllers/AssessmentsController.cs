@@ -47,10 +47,25 @@ public class AssessmentsController : BaseController
         return Ok(ApiResponse<object>.Ok(result));
     }
 
-    [Authorize(Policy = "HrOrManager")]
+    [Authorize(Policy = "Authenticated")]
     [HttpGet("{id:int}/scores")]
     public async Task<IActionResult> GetScores(int id)
     {
+        if (CurrentUserRole == "Employee")
+        {
+            var evaluatorEmployeeId = CurrentEmployeeId
+                ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
+
+            if (!await _assessmentService.HasAssignmentAsync(id, evaluatorEmployeeId))
+                throw new UnauthorizedAccessException("Bu değerlendirme skorlarına erişim yetkiniz yok.");
+
+            var evaluatorScores = await _assessmentService.GetAssessmentScoresForEvaluatorAsync(id, evaluatorEmployeeId);
+            return Ok(ApiResponse<object>.Ok(evaluatorScores));
+        }
+
+        if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
+            throw new UnauthorizedAccessException("Bu değerlendirme skorlarına erişim yetkiniz yok.");
+
         await EnsureManagerCanAccessAssessmentAsync(id);
         var scores = await _assessmentService.GetAssessmentScoresAsync(id);
         return Ok(ApiResponse<object>.Ok(scores));

@@ -10,8 +10,11 @@ public interface IAssessmentService
     Task<AssessmentDetailDto> CreateAssessmentAsync(CreateAssessmentRequest request, int createdByUserId);
     Task<AssessmentDetailDto> CompleteAssessmentAsync(int id);
     Task<List<AssessmentScoreDto>> GetAssessmentScoresAsync(int assessmentId);
+    Task<List<AssessmentScoreDto>> GetAssessmentScoresForEvaluatorAsync(int assessmentId, int evaluatorEmployeeId);
     Task<AssessmentScoreDto> UpsertAssessmentScoreAsync(int assessmentId, UpsertAssessmentScoreRequest request);
     Task<PagedResponse<AssessmentDetailDto>> GetEmployeeAssessmentsAsync(int employeeId, int pageNumber, int pageSize);
+    Task<bool> HasActiveAssignmentForEmployeeAsync(int employeeId, int evaluatorEmployeeId);
+    Task<bool> HasAssignmentAsync(int assessmentId, int evaluatorEmployeeId);
 
     // ── 360° evaluator assignments ─────────────────────────────────────────
     Task<AssessmentAssignmentDto> CreateAssignmentAsync(CreateAssessmentAssignmentRequest request, int requestingUserId);

@@ -2,6 +2,7 @@ using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
 using BitirmeBackend.Contracts.Requests;
+using BitirmeBackend.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,11 +36,31 @@ public class EmployeesController : BaseController
         return Ok(result);
     }
 
-    [Authorize(Policy = "HrOrManager")]
+    [Authorize(Policy = "Authenticated")]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var emp = await _employeeService.GetEmployeeByIdAsync(id);
+
+        if (CurrentUserRole == "Employee")
+        {
+            var evaluatorEmployeeId = CurrentEmployeeId
+                ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
+
+            if (!await _assessmentService.HasActiveAssignmentForEmployeeAsync(id, evaluatorEmployeeId))
+                throw new UnauthorizedAccessException("Bu çalışana erişim yetkiniz yok.");
+
+            return Ok(ApiResponse<object>.Ok(new EmployeeBasicInfoDto
+            {
+                Id = emp.Id,
+                FullName = emp.FullName,
+                Department = emp.Department,
+                JobRole = emp.JobRole
+            }));
+        }
+
+        if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
+            throw new UnauthorizedAccessException("Bu çalışana erişim yetkiniz yok.");
 
         if (CurrentUserRole == "Manager" && emp.ManagerId != CurrentEmployeeId)
             throw new UnauthorizedAccessException("Bu çalışana erişim yetkiniz yok.");
@@ -77,11 +98,25 @@ public class EmployeesController : BaseController
         return Ok(result);
     }
 
-    [Authorize(Policy = "HrOrManager")]
+    [Authorize(Policy = "Authenticated")]
     [HttpGet("{id:int}/action-plans")]
     public async Task<IActionResult> GetActionPlans(int id)
     {
-        await EnsureManagerCanAccessEmployeeAsync(id, _employees);
+        if (CurrentUserRole == "Employee")
+        {
+            var employeeId = CurrentEmployeeId
+                ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
+
+            if (employeeId != id)
+                throw new UnauthorizedAccessException("Bu çalışanın aksiyon planlarına erişim yetkiniz yok.");
+        }
+        else
+        {
+            if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
+                throw new UnauthorizedAccessException("Bu çalışanın aksiyon planlarına erişim yetkiniz yok.");
+
+            await EnsureManagerCanAccessEmployeeAsync(id, _employees);
+        }
 
         var result = await _actionPlanService.GetEmployeeActionPlansAsync(id);
         return Ok(ApiResponse<object>.Ok(result));

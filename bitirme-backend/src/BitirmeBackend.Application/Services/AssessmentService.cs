@@ -94,6 +94,15 @@ public class AssessmentService : IAssessmentService
         return scores.Select(ToScoreDto).ToList();
     }
 
+    public async Task<List<AssessmentScoreDto>> GetAssessmentScoresForEvaluatorAsync(int assessmentId, int evaluatorEmployeeId)
+    {
+        var scores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
+        return scores
+            .Where(s => s.EvaluatorEmployeeId == evaluatorEmployeeId)
+            .Select(ToScoreDto)
+            .ToList();
+    }
+
     public async Task<AssessmentScoreDto> UpsertAssessmentScoreAsync(int assessmentId, UpsertAssessmentScoreRequest request)
     {
         _ = await _assessments.GetByIdAsync(assessmentId)
@@ -224,6 +233,22 @@ public class AssessmentService : IAssessmentService
                 CompetencyCount = RequiredCompetencyCount
             })
             .ToList();
+    }
+
+    public async Task<bool> HasActiveAssignmentForEmployeeAsync(int employeeId, int evaluatorEmployeeId)
+    {
+        var assignments = await _assessments.GetAssignmentsByEvaluatorAsync(evaluatorEmployeeId);
+        return assignments.Any(a =>
+            !a.IsCompleted &&
+            a.Assessment is not null &&
+            a.Assessment.EmployeeId == employeeId &&
+            a.Assessment.Status != AssessmentStatus.Completed);
+    }
+
+    public async Task<bool> HasAssignmentAsync(int assessmentId, int evaluatorEmployeeId)
+    {
+        var assignment = await _assessments.GetAssignmentAsync(assessmentId, evaluatorEmployeeId);
+        return assignment is not null;
     }
 
     public async Task<List<AssessmentAssignmentDto>> GetAssignmentsByAssessmentAsync(int assessmentId)
