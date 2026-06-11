@@ -234,7 +234,7 @@ public class ActionPlanServiceTests
         await svc.Invoking(s => s.GenerateDraftActionPlanAsync(
                 new GenerateActionPlanRequest { AssessmentId = 1, TopK = 13 }, 2))
             .Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*tamamlanmış*");
+            .WithMessage("Değerlendirme tamamlanmadan gelişim planı üretilemez.");
     }
 
     [Fact]

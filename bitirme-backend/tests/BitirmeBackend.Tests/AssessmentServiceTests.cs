@@ -29,6 +29,21 @@ public class AssessmentServiceTests
         EvaluatorType = "Peer", IsCompleted = completed
     };
 
+    [Fact]
+    public async Task CreateAssessmentAsync_ActiveAssessmentExists_ThrowsArgumentException()
+    {
+        var (svc, assessments, actionPlans, _) = Build();
+        assessments.Setup(r => r.HasActiveByEmployeeIdAsync(10)).ReturnsAsync(true);
+
+        await svc.Invoking(s => s.CreateAssessmentAsync(
+                new CreateAssessmentRequest { EmployeeId = 10, CycleId = 1 }, createdByUserId: 2))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Çalışanın devam eden aktif bir değerlendirme süreci bulunmaktadır.");
+
+        actionPlans.Verify(r => r.GetByEmployeeIdAsync(It.IsAny<int>()), Times.Never);
+        assessments.Verify(r => r.AddAsync(It.IsAny<Assessment>()), Times.Never);
+    }
+
     // ── UpsertAssessmentScoreAsync ────────────────────────────────────────────
 
     [Fact]
@@ -106,7 +121,7 @@ public class AssessmentServiceTests
 
         // After saving, the evaluator now has all 13 competencies scored.
         var thirteen = Enumerable.Range(1, 13)
-            .Select(c => new AssessmentScore { Id = c, AssessmentId = 1, CompetencyId = c, EvaluatorEmployeeId = 5 })
+            .Select(c => new AssessmentScore { Id = c, AssessmentId = 1, CompetencyId = c, EvaluatorEmployeeId = 5, Score = 3.0 })
             .ToList();
         assessments.Setup(r => r.GetScoresByAssessmentIdAsync(1)).ReturnsAsync(thirteen);
         // Completing the survey triggers the FIX 1 auto-complete check.
@@ -209,7 +224,7 @@ public class AssessmentServiceTests
         assessments.Setup(r => r.AddScoreAsync(It.IsAny<AssessmentScore>())).Returns(Task.CompletedTask);
 
         var thirteen = Enumerable.Range(1, 13)
-            .Select(c => new AssessmentScore { Id = c, AssessmentId = 1, CompetencyId = c, EvaluatorEmployeeId = 5 })
+            .Select(c => new AssessmentScore { Id = c, AssessmentId = 1, CompetencyId = c, EvaluatorEmployeeId = 5, Score = 3.0 })
             .ToList();
         assessments.Setup(r => r.GetScoresByAssessmentIdAsync(1)).ReturnsAsync(thirteen);
         // The only assignment is the one we just completed → assessment should auto-complete.
@@ -220,6 +235,7 @@ public class AssessmentServiceTests
             new UpsertAssessmentScoreRequest { CompetencyId = 13, EvaluatorEmployeeId = 5, EvaluatorType = "Peer", Score = 3.0 });
 
         assessment.Status.Should().Be(AssessmentStatus.Completed);
+        assessment.OverallScore.Should().Be(3.0);
         assessments.Verify(r => r.Update(assessment), Times.Once);
     }
 
@@ -282,10 +298,11 @@ public class AssessmentServiceTests
         assessments.Setup(r => r.AddScoreAsync(It.IsAny<AssessmentScore>())).Returns(Task.CompletedTask);
 
         var thirteen = Enumerable.Range(1, 13)
-            .Select(c => new AssessmentScore { Id = c, AssessmentId = 1, CompetencyId = c, EvaluatorEmployeeId = 5 })
+            .Select(c => new AssessmentScore { Id = c, AssessmentId = 1, CompetencyId = c, EvaluatorEmployeeId = 5, Score = 3.0 })
             .ToList();
         assessments.SetupSequence(r => r.GetScoresByAssessmentIdAsync(1))
                    .ReturnsAsync(new List<AssessmentScore>())
+                   .ReturnsAsync(thirteen)
                    .ReturnsAsync(thirteen);
         assessments.Setup(r => r.GetAssignmentsByAssessmentAsync(1))
                    .ReturnsAsync(new List<AssessmentAssignment> { assignment });
@@ -302,6 +319,8 @@ public class AssessmentServiceTests
 
         result.IsCompleted.Should().BeTrue();
         assignment.IsCompleted.Should().BeTrue();
+        assessment.Status.Should().Be(AssessmentStatus.Completed);
+        assessment.OverallScore.Should().Be(3.0);
         assessments.Verify(r => r.AddScoreAsync(It.IsAny<AssessmentScore>()), Times.Exactly(13));
     }
 

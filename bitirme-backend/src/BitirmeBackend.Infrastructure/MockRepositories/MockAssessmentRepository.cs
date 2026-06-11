@@ -48,6 +48,11 @@ public class MockAssessmentRepository : IAssessmentRepository
         return Task.FromResult((Items: items.AsEnumerable(), TotalCount: all.Count));
     }
 
+    public Task<bool> HasActiveByEmployeeIdAsync(int employeeId) =>
+        Task.FromResult(Active.Any(a =>
+            a.EmployeeId == employeeId &&
+            a.Status != Domain.Enums.AssessmentStatus.Completed));
+
     public Task<IEnumerable<AssessmentScore>> GetScoresByAssessmentIdAsync(int assessmentId)
     {
         var scores = MockDataStore.AssessmentScores

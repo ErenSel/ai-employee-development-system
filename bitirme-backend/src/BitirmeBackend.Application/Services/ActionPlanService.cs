@@ -52,7 +52,7 @@ public class ActionPlanService : IActionPlanService
 
         // Assessment must be Completed before a plan can be generated from it
         if (assessment.Status != AssessmentStatus.Completed)
-            throw new ArgumentException("Aksiyon planı oluşturmak için değerlendirmenin tamamlanmış olması gerekir.");
+            throw new ArgumentException("Değerlendirme tamamlanmadan gelişim planı üretilemez.");
 
         var employeeId = assessment.EmployeeId;
 

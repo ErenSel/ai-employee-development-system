@@ -55,6 +55,12 @@ public class AssessmentRepository : IAssessmentRepository
         return (items, total);
     }
 
+    public Task<bool> HasActiveByEmployeeIdAsync(int employeeId) =>
+        _db.Assessments.AnyAsync(a =>
+            a.EmployeeId == employeeId &&
+            !a.IsDeleted &&
+            a.Status != AssessmentStatus.Completed);
+
     public async Task<IEnumerable<AssessmentScore>> GetScoresByAssessmentIdAsync(int assessmentId) =>
         await _db.AssessmentScores
             .Include(s => s.Competency)

@@ -34,6 +34,9 @@ public class AssessmentService : IAssessmentService
     {
         // Active incomplete plan guard — block a new assessment while the employee
         // still has a development plan that is not Completed/Cancelled.
+        if (await _assessments.HasActiveByEmployeeIdAsync(request.EmployeeId))
+            throw new ArgumentException("Çalışanın devam eden aktif bir değerlendirme süreci bulunmaktadır.");
+
         var plans = await _actionPlans.GetByEmployeeIdAsync(request.EmployeeId);
         var activePlan = plans.FirstOrDefault(p =>
             p.Status != ActionPlanStatus.Completed && p.Status != ActionPlanStatus.Cancelled);
@@ -307,12 +310,24 @@ public class AssessmentService : IAssessmentService
             return;
 
         var assessment = await _assessments.GetByIdAsync(assessmentId);
-        if (assessment is not null && assessment.Status != AssessmentStatus.Completed)
+        if (assessment is not null)
         {
-            assessment.Status    = AssessmentStatus.Completed;
-            assessment.UpdatedAt = DateTime.UtcNow;
+            var scores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
+            assessment.Status       = AssessmentStatus.Completed;
+            assessment.OverallScore = CalculateOverallScore(scores);
+            assessment.UpdatedAt    = DateTime.UtcNow;
             _assessments.Update(assessment);
         }
+    }
+
+    private static double? CalculateOverallScore(IEnumerable<AssessmentScore> scores)
+    {
+        var competencyAverages = scores
+            .GroupBy(s => s.CompetencyId)
+            .Select(g => g.Average(s => s.Score))
+            .ToList();
+
+        return competencyAverages.Count == 0 ? null : competencyAverages.Average();
     }
 
     public async Task<PagedResponse<AssessmentDetailDto>> GetEmployeeAssessmentsAsync(
