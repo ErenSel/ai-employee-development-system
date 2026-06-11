@@ -98,7 +98,8 @@ BitirmeBackend\
 - Bir evaluator 13 yetkinliği de doldurunca assignment otomatik IsCompleted=true olur;
   tüm assignment'lar tamamlanınca assessment otomatik Completed olur (manuel complete'e gerek yok)
 - Bulk skor girişi: `POST /scores/bulk` ile bir evaluator tüm skorları tek istekte gönderir
-- Demo kullanıcısı: zeynep.arslan@demo.com / Employee1234! (EmployeeId=4, bekleyen Peer anketi)
+- Demo kullanıcısı: buse.demir@demo.com / Demo1234! (EmployeeId=2, tamamlanmış assessment)
+- 20 çalışan kullanıcısı: Demo1234! şifresi (ahmet.yilmaz@demo.com, zeynep.arslan@demo.com, vb.)
 
 ### ActionPlanItem
 - Ayrı Status alanı YOK — silme işlemi IsDeleted soft delete ile
