@@ -16,6 +16,22 @@ public class MockEmployeeTaskRepository : IEmployeeTaskRepository
         return Task.FromResult((items, all.Count));
     }
 
+    public Task<(IEnumerable<EmployeeTask> Items, int TotalCount)> GetByEmployeePagedWithDetailsAsync(
+        int employeeId, int pageNumber, int pageSize)
+    {
+        var all = Active
+            .Where(t => t.EmployeeId == employeeId)
+            .OrderByDescending(t => t.Id)
+            .ToList();
+        var items = all
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => GetByIdWithDetailsAsync(t.Id).Result!)
+            .Where(t => t is not null)
+            .ToList();
+        return Task.FromResult((Items: items.AsEnumerable(), TotalCount: all.Count));
+    }
+
     public Task<EmployeeTask?> GetByIdAsync(int id) =>
         Task.FromResult(Active.FirstOrDefault(t => t.Id == id));
 

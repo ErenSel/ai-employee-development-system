@@ -5,6 +5,7 @@ namespace BitirmeBackend.Application.Interfaces.Repositories;
 public interface IEmployeeTaskRepository
 {
     Task<(IEnumerable<EmployeeTask> Items, int TotalCount)> GetByEmployeePagedAsync(int employeeId, int pageNumber, int pageSize);
+    Task<(IEnumerable<EmployeeTask> Items, int TotalCount)> GetByEmployeePagedWithDetailsAsync(int employeeId, int pageNumber, int pageSize);
     Task<EmployeeTask?> GetByIdAsync(int id);
     Task<EmployeeTask?> GetByIdWithDetailsAsync(int id);
 

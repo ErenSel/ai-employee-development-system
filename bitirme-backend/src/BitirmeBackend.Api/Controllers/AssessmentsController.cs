@@ -2,6 +2,7 @@ using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
 using BitirmeBackend.Contracts.Requests;
+using BitirmeBackend.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +24,7 @@ public class AssessmentsController : BaseController
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _assessmentService.GetAssessmentByIdAsync(id);
+        await EnsureManagerCanAccessAssessmentAsync(result);
         return Ok(ApiResponse<object>.Ok(result));
     }
 
@@ -40,6 +42,7 @@ public class AssessmentsController : BaseController
     [HttpPut("{id:int}/complete")]
     public async Task<IActionResult> Complete(int id)
     {
+        await EnsureManagerCanAccessAssessmentAsync(id);
         var result = await _assessmentService.CompleteAssessmentAsync(id);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -48,6 +51,7 @@ public class AssessmentsController : BaseController
     [HttpGet("{id:int}/scores")]
     public async Task<IActionResult> GetScores(int id)
     {
+        await EnsureManagerCanAccessAssessmentAsync(id);
         var scores = await _assessmentService.GetAssessmentScoresAsync(id);
         return Ok(ApiResponse<object>.Ok(scores));
     }
@@ -56,6 +60,7 @@ public class AssessmentsController : BaseController
     [HttpPost("{id:int}/scores")]
     public async Task<IActionResult> UpsertScore(int id, [FromBody] UpsertAssessmentScoreRequest request)
     {
+        await EnsureManagerCanAccessAssessmentAsync(id);
         var result = await _assessmentService.UpsertAssessmentScoreAsync(id, request);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -64,6 +69,8 @@ public class AssessmentsController : BaseController
     [HttpPut("{id:int}/scores/{scoreId:int}")]
     public async Task<IActionResult> UpdateScore(int id, int scoreId, [FromBody] UpsertAssessmentScoreRequest request)
     {
+        await EnsureManagerCanAccessAssessmentAsync(id);
+
         // Validate range before calling service (scoreId is used only for routing; service
         // updates by assessmentId + competencyId + evaluatorEmployeeId)
         if (request.Score < 0.0 || request.Score > 5.0)
@@ -88,6 +95,8 @@ public class AssessmentsController : BaseController
     [HttpPost("{id:int}/assignments")]
     public async Task<IActionResult> CreateAssignment(int id, [FromBody] CreateAssessmentAssignmentRequest request)
     {
+        await EnsureManagerCanAccessAssessmentAsync(id);
+
         // Route id is authoritative for the assessment
         request.AssessmentId = id;
         var result = await _assessmentService.CreateAssignmentAsync(request, CurrentUserId);
@@ -98,7 +107,22 @@ public class AssessmentsController : BaseController
     [HttpGet("{id:int}/assignments")]
     public async Task<IActionResult> GetAssignments(int id)
     {
+        await EnsureManagerCanAccessAssessmentAsync(id);
         var result = await _assessmentService.GetAssignmentsByAssessmentAsync(id);
         return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    private async Task EnsureManagerCanAccessAssessmentAsync(int assessmentId)
+    {
+        if (CurrentUserRole != "Manager")
+            return;
+
+        var assessment = await _assessmentService.GetAssessmentByIdAsync(assessmentId);
+        await EnsureManagerCanAccessAssessmentAsync(assessment);
+    }
+
+    private async Task EnsureManagerCanAccessAssessmentAsync(AssessmentDetailDto assessment)
+    {
+        await EnsureManagerCanAccessEmployeeAsync(assessment.EmployeeId, _employees);
     }
 }

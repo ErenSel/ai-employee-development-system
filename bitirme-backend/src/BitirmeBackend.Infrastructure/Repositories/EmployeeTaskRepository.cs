@@ -23,6 +23,22 @@ public class EmployeeTaskRepository : IEmployeeTaskRepository
         return (items, total);
     }
 
+    public async Task<(IEnumerable<EmployeeTask> Items, int TotalCount)> GetByEmployeePagedWithDetailsAsync(
+        int employeeId, int pageNumber, int pageSize)
+    {
+        var query = _db.EmployeeTasks.Where(t => t.EmployeeId == employeeId && !t.IsDeleted);
+        var total = await query.CountAsync();
+        var items = await query
+            .Include(t => t.Employee)
+            .Include(t => t.AssignedByUser)
+            .Include(t => t.ActionPlanItem)
+            .OrderByDescending(t => t.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        return (items, total);
+    }
+
     public Task<EmployeeTask?> GetByIdAsync(int id) =>
         _db.EmployeeTasks.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
 

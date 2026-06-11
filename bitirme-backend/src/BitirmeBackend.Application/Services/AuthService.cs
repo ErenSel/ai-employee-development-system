@@ -73,6 +73,9 @@ public class AuthService : IAuthService
         if (storedToken is null)
             throw new UnauthorizedAccessException("Geçersiz veya süresi dolmuş refresh token.");
 
+        if (storedToken.IsRevoked || storedToken.ExpiresAt <= DateTime.UtcNow)
+            throw new UnauthorizedAccessException("Geçersiz veya süresi dolmuş refresh token.");
+
         var userId = storedToken.UserId;
 
         var userWithRole = await _users.GetByIdWithRoleAsync(userId)

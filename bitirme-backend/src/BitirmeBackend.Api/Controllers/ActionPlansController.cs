@@ -2,6 +2,7 @@ using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
 using BitirmeBackend.Contracts.Requests;
+using BitirmeBackend.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -48,6 +49,7 @@ public class ActionPlansController : BaseController
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _actionPlanService.GetActionPlanByIdAsync(id);
+        await EnsureManagerCanAccessActionPlanAsync(result);
         return Ok(ApiResponse<object>.Ok(result));
     }
 
@@ -55,6 +57,7 @@ public class ActionPlansController : BaseController
     [HttpPut("{id:int}/items/{itemId:int}")]
     public async Task<IActionResult> UpdateItem(int id, int itemId, [FromBody] UpdateActionPlanItemRequest request)
     {
+        await EnsureManagerCanAccessActionPlanAsync(id);
         var result = await _actionPlanService.UpdateActionPlanItemAsync(id, itemId, request);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -63,6 +66,7 @@ public class ActionPlansController : BaseController
     [HttpPost("{id:int}/items")]
     public async Task<IActionResult> AddManualItem(int id, [FromBody] AddManualActionPlanItemRequest request)
     {
+        await EnsureManagerCanAccessActionPlanAsync(id);
         var result = await _actionPlanService.AddManualItemAsync(id, request, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -71,6 +75,7 @@ public class ActionPlansController : BaseController
     [HttpDelete("{id:int}/items/{itemId:int}")]
     public async Task<IActionResult> RemoveItem(int id, int itemId)
     {
+        await EnsureManagerCanAccessActionPlanAsync(id);
         await _actionPlanService.RemoveItemAsync(id, itemId);
         return NoContent();
     }
@@ -79,6 +84,7 @@ public class ActionPlansController : BaseController
     [HttpPost("{id:int}/approve")]
     public async Task<IActionResult> Approve(int id)
     {
+        await EnsureManagerCanAccessActionPlanAsync(id);
         var result = await _actionPlanService.ApproveActionPlanAsync(id, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -87,6 +93,7 @@ public class ActionPlansController : BaseController
     [HttpPost("{id:int}/send")]
     public async Task<IActionResult> Send(int id)
     {
+        await EnsureManagerCanAccessActionPlanAsync(id);
         var result = await _actionPlanService.SendActionPlanToEmployeeAsync(id, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -95,6 +102,7 @@ public class ActionPlansController : BaseController
     [HttpPost("{id:int}/cancel")]
     public async Task<IActionResult> Cancel(int id)
     {
+        await EnsureManagerCanAccessActionPlanAsync(id);
         var result = await _actionPlanService.CancelActionPlanAsync(id, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -103,7 +111,22 @@ public class ActionPlansController : BaseController
     [HttpGet("{id:int}/export-pdf")]
     public async Task<IActionResult> ExportPdf(int id)
     {
+        await EnsureManagerCanAccessActionPlanAsync(id);
         var bytes = await _pdfExportService.GenerateActionPlanPdfAsync(id);
         return File(bytes, "application/pdf", $"aksiyon-plani-{id}.pdf");
+    }
+
+    private async Task EnsureManagerCanAccessActionPlanAsync(int actionPlanId)
+    {
+        if (CurrentUserRole != "Manager")
+            return;
+
+        var plan = await _actionPlanService.GetActionPlanByIdAsync(actionPlanId);
+        await EnsureManagerCanAccessActionPlanAsync(plan);
+    }
+
+    private async Task EnsureManagerCanAccessActionPlanAsync(ActionPlanDetailDto plan)
+    {
+        await EnsureManagerCanAccessEmployeeAsync(plan.EmployeeId, _employees);
     }
 }

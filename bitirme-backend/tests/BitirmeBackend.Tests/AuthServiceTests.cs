@@ -162,12 +162,28 @@ public class AuthServiceTests
     [Fact]
     public async Task RefreshTokenAsync_RevokedToken_ThrowsUnauthorized()
     {
-        // A revoked token: repo returns null (revoked tokens are excluded by the repo query)
+        var stored = MakeStoredToken();
+        stored.IsRevoked = true;
+
         var refreshRepo = new Mock<IRefreshTokenRepository>();
-        refreshRepo.Setup(r => r.GetByTokenHashAsync(It.IsAny<string>())).ReturnsAsync((RefreshToken?)null);
+        refreshRepo.Setup(r => r.GetByTokenHashAsync(It.IsAny<string>())).ReturnsAsync(stored);
 
         var svc = BuildService(refreshRepo: refreshRepo);
         await svc.Invoking(s => s.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = "revoked-token" }))
+                 .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_ExpiredToken_ThrowsUnauthorized()
+    {
+        var stored = MakeStoredToken();
+        stored.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+
+        var refreshRepo = new Mock<IRefreshTokenRepository>();
+        refreshRepo.Setup(r => r.GetByTokenHashAsync(It.IsAny<string>())).ReturnsAsync(stored);
+
+        var svc = BuildService(refreshRepo: refreshRepo);
+        await svc.Invoking(s => s.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = "expired-token" }))
                  .Should().ThrowAsync<UnauthorizedAccessException>();
     }
 }

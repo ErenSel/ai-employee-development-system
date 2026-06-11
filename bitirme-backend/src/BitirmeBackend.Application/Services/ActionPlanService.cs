@@ -220,15 +220,8 @@ public class ActionPlanService : IActionPlanService
 
     public async Task<List<ActionPlanDetailDto>> GetEmployeeActionPlansAsync(int employeeId)
     {
-        var plans = await _actionPlans.GetByEmployeeIdAsync(employeeId);
-        var result = new List<ActionPlanDetailDto>();
-        foreach (var p in plans)
-        {
-            var withItems = await _actionPlans.GetByIdWithItemsAsync(p.Id);
-            if (withItems is not null)
-                result.Add(ToDetailDto(withItems));
-        }
-        return result;
+        var plans = await _actionPlans.GetByEmployeeIdWithItemsAsync(employeeId);
+        return plans.Select(ToDetailDto).ToList();
     }
 
     public async Task<ActionPlanItemDto> UpdateActionPlanItemAsync(int planId, int itemId, UpdateActionPlanItemRequest request)

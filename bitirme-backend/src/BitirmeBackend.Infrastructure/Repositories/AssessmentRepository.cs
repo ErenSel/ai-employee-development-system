@@ -36,6 +36,25 @@ public class AssessmentRepository : IAssessmentRepository
         return (items, total);
     }
 
+    public async Task<(IEnumerable<Assessment> Items, int TotalCount)> GetByEmployeePagedWithDetailsAsync(
+        int employeeId, int pageNumber, int pageSize)
+    {
+        var query = _db.Assessments.Where(a => a.EmployeeId == employeeId && !a.IsDeleted);
+        var total = await query.CountAsync();
+        var items = await query
+            .Include(a => a.Employee)
+            .Include(a => a.Cycle)
+            .Include(a => a.CreatedByUser)
+            .Include(a => a.Scores.Where(s => !s.IsDeleted))
+                .ThenInclude(s => s.Competency)
+            .OrderByDescending(a => a.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .AsSplitQuery()
+            .ToListAsync();
+        return (items, total);
+    }
+
     public async Task<IEnumerable<AssessmentScore>> GetScoresByAssessmentIdAsync(int assessmentId) =>
         await _db.AssessmentScores
             .Include(s => s.Competency)

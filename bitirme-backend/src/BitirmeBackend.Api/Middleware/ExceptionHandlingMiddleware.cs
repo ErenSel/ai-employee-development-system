@@ -38,6 +38,7 @@ public class ExceptionHandlingMiddleware
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ex.Message),
             ArgumentException => (HttpStatusCode.BadRequest, ex.Message),
             BrokenCircuitException => (HttpStatusCode.ServiceUnavailable, "ML servisi şu an kullanılamıyor"),
+            InvalidOperationException invalidOperation => MapInvalidOperation(invalidOperation),
             _ => (HttpStatusCode.InternalServerError, "Bir hata oluştu")
         };
 
@@ -53,5 +54,18 @@ public class ExceptionHandlingMiddleware
         var json = JsonSerializer.Serialize(response, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
         await context.Response.WriteAsync(json);
+    }
+
+    private static (HttpStatusCode StatusCode, string Message) MapInvalidOperation(InvalidOperationException ex)
+    {
+        if (ex.Message.StartsWith("ML servisi", StringComparison.OrdinalIgnoreCase))
+        {
+            if (ex.Message.Contains("haz", StringComparison.OrdinalIgnoreCase))
+                return (HttpStatusCode.ServiceUnavailable, ex.Message);
+
+            return (HttpStatusCode.BadGateway, ex.Message);
+        }
+
+        return (HttpStatusCode.InternalServerError, ex.Message);
     }
 }

@@ -37,11 +37,23 @@ public class MockActionPlanRepository : IActionPlanRepository
     public Task<IEnumerable<ActionPlan>> GetByEmployeeIdAsync(int employeeId) =>
         Task.FromResult(Active.Where(p => p.EmployeeId == employeeId));
 
+    public Task<IEnumerable<ActionPlan>> GetByEmployeeIdWithItemsAsync(int employeeId)
+    {
+        var plans = Active
+            .Where(p => p.EmployeeId == employeeId)
+            .OrderByDescending(p => p.Id)
+            .Select(p => GetByIdWithItemsAsync(p.Id).Result!)
+            .Where(p => p is not null);
+        return Task.FromResult(plans);
+    }
+
     public Task<ActionPlan?> GetActiveByAssessmentIdAsync(int assessmentId)
     {
-        // Returns any plan that is NOT cancelled (i.e. Draft, Edited, Approved, Sent, Completed)
+        // Returns any plan that is still active (Draft, Edited, Approved, Sent).
         var plan = Active.FirstOrDefault(p =>
-            p.AssessmentId == assessmentId && p.Status != ActionPlanStatus.Cancelled);
+            p.AssessmentId == assessmentId &&
+            p.Status != ActionPlanStatus.Cancelled &&
+            p.Status != ActionPlanStatus.Completed);
         return Task.FromResult(plan);
     }
 

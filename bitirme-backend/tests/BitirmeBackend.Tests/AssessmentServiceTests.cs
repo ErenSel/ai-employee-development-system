@@ -12,12 +12,15 @@ public class AssessmentServiceTests
 {
     private static (AssessmentService Svc,
                     Mock<IAssessmentRepository> Assessments,
-                    Mock<IActionPlanRepository> ActionPlans) Build()
+                    Mock<IActionPlanRepository> ActionPlans,
+                    Mock<IUnitOfWork> Uow) Build()
     {
         var assessments = new Mock<IAssessmentRepository>();
         var actionPlans = new Mock<IActionPlanRepository>();
-        var svc = new AssessmentService(assessments.Object, actionPlans.Object);
-        return (svc, assessments, actionPlans);
+        var uow = new Mock<IUnitOfWork>();
+        uow.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
+        var svc = new AssessmentService(assessments.Object, actionPlans.Object, uow.Object);
+        return (svc, assessments, actionPlans, uow);
     }
 
     private static AssessmentAssignment Assignment(int evaluatorId, bool completed) => new()
@@ -31,7 +34,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task UpsertAssessmentScoreAsync_DraftAssessment_CreatesScore()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft });
         assessments.Setup(r => r.GetAssignmentAsync(1, 5)).ReturnsAsync(Assignment(5, completed: false));
@@ -49,7 +52,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task UpsertAssessmentScoreAsync_AssessmentNotFound_ThrowsKeyNotFound()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Assessment?)null);
 
         await svc.Invoking(s => s.UpsertAssessmentScoreAsync(99,
@@ -60,7 +63,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task UpsertScore_NoAssignment_ThrowsArgumentException()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft });
         assessments.Setup(r => r.GetAssignmentAsync(1, 5)).ReturnsAsync((AssessmentAssignment?)null);
@@ -76,7 +79,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task UpsertScore_AlreadyCompleted_ThrowsArgumentException()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Completed });
         assessments.Setup(r => r.GetAssignmentAsync(1, 2)).ReturnsAsync(Assignment(2, completed: true));
@@ -92,7 +95,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task UpsertScore_ThirteenthCompetency_MarksAssignmentCompleted()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         var assignment = Assignment(5, completed: false);
 
         assessments.Setup(r => r.GetByIdAsync(1))
@@ -123,7 +126,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task CreateAssignment_Duplicate_ThrowsArgumentException()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft });
         assessments.Setup(r => r.GetAssignmentAsync(1, 3)).ReturnsAsync(Assignment(3, completed: false));
@@ -139,7 +142,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task CreateAssignment_New_AddsAssignment()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft });
         assessments.SetupSequence(r => r.GetAssignmentAsync(1, 4))
@@ -159,7 +162,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task GetMySurveys_ReturnsPendingAssignments()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
 
         var assessment = new Assessment
         {
@@ -196,7 +199,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task AutoComplete_WhenAllAssignmentsDone_SetsAssessmentCompleted()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         var assignment = Assignment(5, completed: false);
         var assessment = new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft };
 
@@ -225,7 +228,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task CreateAssignment_DuplicateSelf_ThrowsArgumentException()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft });
         assessments.Setup(r => r.GetAssignmentAsync(1, 7)).ReturnsAsync((AssessmentAssignment?)null);
@@ -246,7 +249,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task CreateAssignment_DuplicateManager_ThrowsArgumentException()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft });
         assessments.Setup(r => r.GetAssignmentAsync(1, 8)).ReturnsAsync((AssessmentAssignment?)null);
@@ -269,7 +272,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task BulkUpsert_ValidScores_MarksAssignmentComplete()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         var assignment = Assignment(5, completed: false);
         var assessment = new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Draft };
 
@@ -281,7 +284,9 @@ public class AssessmentServiceTests
         var thirteen = Enumerable.Range(1, 13)
             .Select(c => new AssessmentScore { Id = c, AssessmentId = 1, CompetencyId = c, EvaluatorEmployeeId = 5 })
             .ToList();
-        assessments.Setup(r => r.GetScoresByAssessmentIdAsync(1)).ReturnsAsync(thirteen);
+        assessments.SetupSequence(r => r.GetScoresByAssessmentIdAsync(1))
+                   .ReturnsAsync(new List<AssessmentScore>())
+                   .ReturnsAsync(thirteen);
         assessments.Setup(r => r.GetAssignmentsByAssessmentAsync(1))
                    .ReturnsAsync(new List<AssessmentAssignment> { assignment });
 
@@ -303,7 +308,7 @@ public class AssessmentServiceTests
     [Fact]
     public async Task BulkUpsert_AlreadyCompleted_ThrowsArgumentException()
     {
-        var (svc, assessments, _) = Build();
+        var (svc, assessments, _, _) = Build();
         assessments.Setup(r => r.GetByIdAsync(1))
                    .ReturnsAsync(new Assessment { Id = 1, EmployeeId = 10, Status = AssessmentStatus.Completed });
         assessments.Setup(r => r.GetAssignmentAsync(1, 2)).ReturnsAsync(Assignment(2, completed: true));

@@ -12,13 +12,15 @@ public class AssessmentService : IAssessmentService
 {
     private readonly IAssessmentRepository _assessments;
     private readonly IActionPlanRepository _actionPlans;
+    private readonly IUnitOfWork _uow;
 
     private const int RequiredCompetencyCount = 13;
 
-    public AssessmentService(IAssessmentRepository assessments, IActionPlanRepository actionPlans)
+    public AssessmentService(IAssessmentRepository assessments, IActionPlanRepository actionPlans, IUnitOfWork uow)
     {
         _assessments = assessments;
         _actionPlans = actionPlans;
+        _uow = uow;
     }
 
     public async Task<AssessmentDetailDto> GetAssessmentByIdAsync(int id)
@@ -47,6 +49,7 @@ public class AssessmentService : IAssessmentService
         };
 
         await _assessments.AddAsync(assessment);
+        await _uow.SaveChangesAsync();
 
         // FIX 4: auto-create the Self assignment so the employee can self-evaluate
         // without HR having to add it manually.
@@ -57,6 +60,7 @@ public class AssessmentService : IAssessmentService
             EvaluatorType       = "Self",
             IsCompleted         = false
         });
+        await _uow.SaveChangesAsync();
 
         var created = await _assessments.GetByIdWithDetailsAsync(assessment.Id)
             ?? throw new InvalidOperationException("Oluşturulan değerlendirme yüklenemedi.");
@@ -74,6 +78,7 @@ public class AssessmentService : IAssessmentService
         a.Status    = AssessmentStatus.Completed;
         a.UpdatedAt = DateTime.UtcNow;
         _assessments.Update(a);
+        await _uow.SaveChangesAsync();
 
         var updated = await _assessments.GetByIdWithDetailsAsync(id)
             ?? throw new InvalidOperationException("Güncellenen değerlendirme yüklenemedi.");
@@ -104,15 +109,14 @@ public class AssessmentService : IAssessmentService
         // Upsert keyed by (AssessmentId, CompetencyId, EvaluatorEmployeeId)
         var existing = await _assessments.GetScoreAsync(assessmentId, request.CompetencyId, request.EvaluatorEmployeeId);
 
-        AssessmentScore saved;
+        AssessmentScore savedCandidate;
         if (existing is not null)
         {
             existing.Score     = request.Score;
             existing.UpdatedAt = DateTime.UtcNow;
             _assessments.UpdateScore(existing);
-
-            var allScores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
-            saved = allScores.FirstOrDefault(s => s.Id == existing.Id) ?? existing;
+            await _uow.SaveChangesAsync();
+            savedCandidate = existing;
         }
         else
         {
@@ -129,13 +133,18 @@ public class AssessmentService : IAssessmentService
             };
 
             await _assessments.AddScoreAsync(score);
-
-            var scores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
-            saved = scores.FirstOrDefault(s => s.Id == score.Id) ?? score;
+            await _uow.SaveChangesAsync();
+            savedCandidate = score;
         }
 
+        var allScores = (await _assessments.GetScoresByAssessmentIdAsync(assessmentId)).ToList();
+        var saved = allScores.FirstOrDefault(s =>
+                    s.CompetencyId == request.CompetencyId &&
+                    s.EvaluatorEmployeeId == request.EvaluatorEmployeeId)
+                ?? savedCandidate;
+
         // Mark the survey complete once the evaluator has scored all 13 competencies.
-        var scoredCompetencies = (await _assessments.GetScoresByAssessmentIdAsync(assessmentId))
+        var scoredCompetencies = allScores
             .Where(s => s.EvaluatorEmployeeId == request.EvaluatorEmployeeId)
             .Select(s => s.CompetencyId)
             .Distinct()
@@ -149,6 +158,7 @@ public class AssessmentService : IAssessmentService
 
             // FIX 1: auto-complete the assessment once every assignment is done.
             await TryAutoCompleteAssessmentAsync(assessmentId);
+            await _uow.SaveChangesAsync();
         }
 
         return ToScoreDto(saved);
@@ -184,6 +194,7 @@ public class AssessmentService : IAssessmentService
         };
 
         await _assessments.AddAssignmentAsync(assignment);
+        await _uow.SaveChangesAsync();
 
         // Reload with evaluator nav attached
         var saved = await _assessments.GetAssignmentAsync(request.AssessmentId, request.EvaluatorEmployeeId) ?? assignment;
@@ -239,11 +250,14 @@ public class AssessmentService : IAssessmentService
         if (!Enum.TryParse<EvaluatorType>(assignment.EvaluatorType, ignoreCase: true, out var evalType))
             throw new ArgumentException($"Geçersiz EvaluatorType: {assignment.EvaluatorType}");
 
+        var existingScores = (await _assessments.GetScoresByAssessmentIdAsync(assessmentId))
+            .Where(s => s.EvaluatorEmployeeId == request.EvaluatorEmployeeId)
+            .ToDictionary(s => s.CompetencyId);
+
         // Upsert each score keyed by (AssessmentId, CompetencyId, EvaluatorEmployeeId).
         foreach (var item in request.Scores)
         {
-            var existing = await _assessments.GetScoreAsync(assessmentId, item.CompetencyId, request.EvaluatorEmployeeId);
-            if (existing is not null)
+            if (existingScores.TryGetValue(item.CompetencyId, out var existing))
             {
                 existing.Score     = item.Score;
                 existing.UpdatedAt = DateTime.UtcNow;
@@ -261,6 +275,7 @@ public class AssessmentService : IAssessmentService
                 });
             }
         }
+        await _uow.SaveChangesAsync();
 
         // Mark the survey complete once all 13 competencies are scored.
         var scoredCompetencies = (await _assessments.GetScoresByAssessmentIdAsync(assessmentId))
@@ -277,6 +292,7 @@ public class AssessmentService : IAssessmentService
 
             // FIX 1: auto-complete the assessment once every assignment is done.
             await TryAutoCompleteAssessmentAsync(assessmentId);
+            await _uow.SaveChangesAsync();
         }
 
         var saved = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId) ?? assignment;
@@ -302,15 +318,8 @@ public class AssessmentService : IAssessmentService
     public async Task<PagedResponse<AssessmentDetailDto>> GetEmployeeAssessmentsAsync(
         int employeeId, int pageNumber, int pageSize)
     {
-        var (items, total) = await _assessments.GetByEmployeePagedAsync(employeeId, pageNumber, pageSize);
-
-        // Load details for each (attach nav properties)
-        var dtos = new List<AssessmentDetailDto>();
-        foreach (var a in items)
-        {
-            var detailed = await _assessments.GetByIdWithDetailsAsync(a.Id);
-            if (detailed is not null) dtos.Add(ToDetail(detailed));
-        }
+        var (items, total) = await _assessments.GetByEmployeePagedWithDetailsAsync(employeeId, pageNumber, pageSize);
+        var dtos = items.Select(ToDetail).ToList();
 
         return PagedResponse<AssessmentDetailDto>.Ok(dtos, total, pageNumber, pageSize);
     }

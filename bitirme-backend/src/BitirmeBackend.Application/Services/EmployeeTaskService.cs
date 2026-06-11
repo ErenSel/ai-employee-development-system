@@ -21,16 +21,8 @@ public class EmployeeTaskService : IEmployeeTaskService
 
     public async Task<PagedResponse<EmployeeTaskDto>> GetMyTasksAsync(int employeeId, int pageNumber, int pageSize)
     {
-        var (items, total) = await _tasks.GetByEmployeePagedAsync(employeeId, pageNumber, pageSize);
-
-        // Enrich each task with nav properties
-        var dtos = new List<EmployeeTaskDto>();
-        foreach (var t in items)
-        {
-            var detailed = await _tasks.GetByIdWithDetailsAsync(t.Id);
-            if (detailed is not null)
-                dtos.Add(ToDto(detailed));
-        }
+        var (items, total) = await _tasks.GetByEmployeePagedWithDetailsAsync(employeeId, pageNumber, pageSize);
+        var dtos = items.Select(ToDto).ToList();
 
         return PagedResponse<EmployeeTaskDto>.Ok(dtos, total, pageNumber, pageSize);
     }

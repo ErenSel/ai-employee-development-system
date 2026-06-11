@@ -7,6 +7,7 @@ public interface IAssessmentRepository
     Task<Assessment?> GetByIdAsync(int id);
     Task<Assessment?> GetByIdWithDetailsAsync(int id);
     Task<(IEnumerable<Assessment> Items, int TotalCount)> GetByEmployeePagedAsync(int employeeId, int pageNumber, int pageSize);
+    Task<(IEnumerable<Assessment> Items, int TotalCount)> GetByEmployeePagedWithDetailsAsync(int employeeId, int pageNumber, int pageSize);
     Task<IEnumerable<AssessmentScore>> GetScoresByAssessmentIdAsync(int assessmentId);
     Task<AssessmentScore?> GetScoreAsync(int assessmentId, int competencyId, string evaluatorType);
 

@@ -28,11 +28,23 @@ public class ActionPlanRepository : IActionPlanRepository
             .OrderByDescending(p => p.Id)
             .ToListAsync();
 
+    public async Task<IEnumerable<ActionPlan>> GetByEmployeeIdWithItemsAsync(int employeeId) =>
+        await _db.ActionPlans
+            .Include(p => p.Employee)
+            .Include(p => p.CreatedByUser)
+            .Include(p => p.Items.Where(i => !i.IsDeleted))
+                .ThenInclude(i => i.EmployeeTasks.Where(t => !t.IsDeleted))
+            .Where(p => p.EmployeeId == employeeId && !p.IsDeleted)
+            .OrderByDescending(p => p.Id)
+            .AsSplitQuery()
+            .ToListAsync();
+
     public Task<ActionPlan?> GetActiveByAssessmentIdAsync(int assessmentId) =>
         _db.ActionPlans.FirstOrDefaultAsync(p =>
             p.AssessmentId == assessmentId &&
             !p.IsDeleted &&
-            p.Status != ActionPlanStatus.Cancelled);
+            p.Status != ActionPlanStatus.Cancelled &&
+            p.Status != ActionPlanStatus.Completed);
 
     public Task<ActionPlanItem?> GetItemByIdAsync(int itemId) =>
         _db.ActionPlanItems.FirstOrDefaultAsync(i => i.Id == itemId && !i.IsDeleted);

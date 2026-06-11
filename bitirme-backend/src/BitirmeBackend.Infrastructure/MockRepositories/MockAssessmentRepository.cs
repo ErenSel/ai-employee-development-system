@@ -32,6 +32,22 @@ public class MockAssessmentRepository : IAssessmentRepository
         return Task.FromResult((items, all.Count));
     }
 
+    public Task<(IEnumerable<Assessment> Items, int TotalCount)> GetByEmployeePagedWithDetailsAsync(
+        int employeeId, int pageNumber, int pageSize)
+    {
+        var all = Active
+            .Where(a => a.EmployeeId == employeeId)
+            .OrderByDescending(a => a.Id)
+            .ToList();
+        var items = all
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(a => GetByIdWithDetailsAsync(a.Id).Result!)
+            .Where(a => a is not null)
+            .ToList();
+        return Task.FromResult((Items: items.AsEnumerable(), TotalCount: all.Count));
+    }
+
     public Task<IEnumerable<AssessmentScore>> GetScoresByAssessmentIdAsync(int assessmentId)
     {
         var scores = MockDataStore.AssessmentScores

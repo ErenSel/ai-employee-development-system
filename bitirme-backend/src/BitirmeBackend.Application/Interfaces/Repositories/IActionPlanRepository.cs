@@ -8,6 +8,7 @@ public interface IActionPlanRepository
     Task<ActionPlan?> GetByIdAsync(int id);
     Task<ActionPlan?> GetByIdWithItemsAsync(int id);
     Task<IEnumerable<ActionPlan>> GetByEmployeeIdAsync(int employeeId);
+    Task<IEnumerable<ActionPlan>> GetByEmployeeIdWithItemsAsync(int employeeId);
 
     /// <summary>Returns an active (non-cancelled) plan for the assessment, if any.</summary>
     Task<ActionPlan?> GetActiveByAssessmentIdAsync(int assessmentId);
