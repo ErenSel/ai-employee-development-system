@@ -107,11 +107,27 @@ public class ActionPlansController : BaseController
         return Ok(ApiResponse<object>.Ok(result));
     }
 
-    [Authorize(Policy = "HrOrManager")]
+    // Authenticated (not just HrOrManager): the plan's owning employee may also download
+    // their own PDF. HR/Admin see all; Manager is scoped to their team; Employee to their own plan.
+    [Authorize(Policy = "Authenticated")]
     [HttpGet("{id:int}/export-pdf")]
     public async Task<IActionResult> ExportPdf(int id)
     {
-        await EnsureManagerCanAccessActionPlanAsync(id);
+        if (CurrentUserRole == "Employee")
+        {
+            var plan = await _actionPlanService.GetActionPlanByIdAsync(id);
+            var employeeId = CurrentEmployeeId
+                ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
+            if (plan.EmployeeId != employeeId)
+                throw new UnauthorizedAccessException("Bu gelişim planına erişim yetkiniz yok.");
+        }
+        else
+        {
+            if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
+                throw new UnauthorizedAccessException("Bu gelişim planına erişim yetkiniz yok.");
+            await EnsureManagerCanAccessActionPlanAsync(id);
+        }
+
         var bytes = await _pdfExportService.GenerateActionPlanPdfAsync(id);
         return File(bytes, "application/pdf", $"aksiyon-plani-{id}.pdf");
     }

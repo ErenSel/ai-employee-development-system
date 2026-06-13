@@ -9,5 +9,8 @@ public class EmployeeListItemDto
     public string Department { get; set; } = string.Empty;
     public string JobRole { get; set; } = string.Empty;
     public int? ManagerId { get; set; }
+
+    /// <summary>Latest/general performance score — shown in the employee list grid.</summary>
+    public double PerformanceScore { get; set; }
     public bool IsActive { get; set; }
 }

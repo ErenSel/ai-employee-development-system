@@ -180,7 +180,10 @@ public class ActionPlanService : IActionPlanService
                     Description         = snapshot.Description,
                     Resource            = snapshot.Resource,
                     DeliveryType        = snapshot.DeliveryType,
-                    Priority            = PriorityLevel.Medium,
+                    // FIX 6: dynamic priority instead of a static Medium. The ML response is
+                    // ranked by relevance (rank 1 = weakest competency / most needed action),
+                    // so the top tier maps to High, the middle to Medium, the rest to Low.
+                    Priority            = DerivePriority(rank, recommendedActions.Count),
                     Source              = ActionPlanItemSource.AI,
                     OrderNo             = rank
                 };
@@ -439,6 +442,21 @@ public class ActionPlanService : IActionPlanService
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    // Maps a 1-based ML rank to a priority tier: the top third of recommendations is High,
+    // the middle third Medium, the rest Low. Rank 1 is the weakest competency / most-needed action.
+    private static PriorityLevel DerivePriority(int rank, int total)
+    {
+        if (total <= 0)
+            return PriorityLevel.Medium;
+
+        var third = (int)Math.Ceiling(total / 3.0);
+        if (rank <= third)
+            return PriorityLevel.High;
+        if (rank <= third * 2)
+            return PriorityLevel.Medium;
+        return PriorityLevel.Low;
+    }
 
     private static Dictionary<string, object> BuildFeatureDictionary(EmployeeFeatureDto f) => new()
     {

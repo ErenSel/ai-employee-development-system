@@ -12,14 +12,16 @@ public class AssessmentService : IAssessmentService
 {
     private readonly IAssessmentRepository _assessments;
     private readonly IActionPlanRepository _actionPlans;
+    private readonly IEmployeeRepository _employees;
     private readonly IUnitOfWork _uow;
 
     private const int RequiredCompetencyCount = 13;
 
-    public AssessmentService(IAssessmentRepository assessments, IActionPlanRepository actionPlans, IUnitOfWork uow)
+    public AssessmentService(IAssessmentRepository assessments, IActionPlanRepository actionPlans, IEmployeeRepository employees, IUnitOfWork uow)
     {
         _assessments = assessments;
         _actionPlans = actionPlans;
+        _employees = employees;
         _uow = uow;
     }
 
@@ -63,6 +65,21 @@ public class AssessmentService : IAssessmentService
             EvaluatorType       = "Self",
             IsCompleted         = false
         });
+
+        // FIX 5: auto-create the Manager assignment when the employee has a manager,
+        // so the manager's 360° survey appears without HR adding it manually.
+        var employee = await _employees.GetByIdAsync(request.EmployeeId);
+        if (employee?.ManagerId is int managerId)
+        {
+            await _assessments.AddAssignmentAsync(new AssessmentAssignment
+            {
+                AssessmentId        = assessment.Id,
+                EvaluatorEmployeeId = managerId,
+                EvaluatorType       = "Manager",
+                IsCompleted         = false
+            });
+        }
+
         await _uow.SaveChangesAsync();
 
         var created = await _assessments.GetByIdWithDetailsAsync(assessment.Id)

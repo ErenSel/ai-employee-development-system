@@ -215,6 +215,7 @@ public class EmployeeService : IEmployeeService
         Department   = e.Department?.Name ?? string.Empty,
         JobRole      = e.JobRole?.Name ?? string.Empty,
         ManagerId    = e.ManagerId,
+        PerformanceScore = e.PerformanceScore,
         IsActive     = e.IsActive
     };
 

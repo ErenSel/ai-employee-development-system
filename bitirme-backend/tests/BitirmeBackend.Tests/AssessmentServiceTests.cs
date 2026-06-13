@@ -17,9 +17,10 @@ public class AssessmentServiceTests
     {
         var assessments = new Mock<IAssessmentRepository>();
         var actionPlans = new Mock<IActionPlanRepository>();
+        var employees = new Mock<IEmployeeRepository>();
         var uow = new Mock<IUnitOfWork>();
         uow.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
-        var svc = new AssessmentService(assessments.Object, actionPlans.Object, uow.Object);
+        var svc = new AssessmentService(assessments.Object, actionPlans.Object, employees.Object, uow.Object);
         return (svc, assessments, actionPlans, uow);
     }
 
