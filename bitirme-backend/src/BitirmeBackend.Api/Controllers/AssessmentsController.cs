@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
@@ -57,14 +58,14 @@ public class AssessmentsController : BaseController
                 ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
 
             if (!await _assessmentService.HasAssignmentAsync(id, evaluatorEmployeeId))
-                throw new UnauthorizedAccessException("Bu değerlendirme skorlarına erişim yetkiniz yok.");
+                throw new ForbiddenAccessException("Bu değerlendirme skorlarına erişim yetkiniz yok.");
 
             var evaluatorScores = await _assessmentService.GetAssessmentScoresForEvaluatorAsync(id, evaluatorEmployeeId);
             return Ok(ApiResponse<object>.Ok(evaluatorScores));
         }
 
         if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
-            throw new UnauthorizedAccessException("Bu değerlendirme skorlarına erişim yetkiniz yok.");
+            throw new ForbiddenAccessException("Bu değerlendirme skorlarına erişim yetkiniz yok.");
 
         await EnsureManagerCanAccessAssessmentAsync(id);
         var scores = await _assessmentService.GetAssessmentScoresAsync(id);
@@ -104,7 +105,7 @@ public class AssessmentsController : BaseController
         // Without this, any authenticated user could post to another evaluator's assignment.
         // HR/Admin proxy ("God Mode") is exempt and may submit on anyone's behalf.
         if (!IsProxyAllowed && request.EvaluatorEmployeeId != CurrentEmployeeId)
-            throw new UnauthorizedAccessException("Yalnızca kendi değerlendirme anketinizi gönderebilirsiniz.");
+            throw new ForbiddenAccessException("Yalnızca kendi değerlendirme anketinizi gönderebilirsiniz.");
 
         var result = await _assessmentService.BulkUpsertScoresAsync(id, request, IsProxyAllowed);
         return Ok(ApiResponse<object>.Ok(result));

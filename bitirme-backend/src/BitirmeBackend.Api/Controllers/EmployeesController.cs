@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
@@ -48,7 +49,7 @@ public class EmployeesController : BaseController
                 ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
 
             if (!await _assessmentService.HasActiveAssignmentForEmployeeAsync(id, evaluatorEmployeeId))
-                throw new UnauthorizedAccessException("Bu çalışana erişim yetkiniz yok.");
+                throw new ForbiddenAccessException("Bu çalışana erişim yetkiniz yok.");
 
             return Ok(ApiResponse<object>.Ok(new EmployeeBasicInfoDto
             {
@@ -60,10 +61,14 @@ public class EmployeesController : BaseController
         }
 
         if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
-            throw new UnauthorizedAccessException("Bu çalışana erişim yetkiniz yok.");
+            throw new ForbiddenAccessException("Bu çalışana erişim yetkiniz yok.");
 
-        if (CurrentUserRole == "Manager" && emp.ManagerId != CurrentEmployeeId)
-            throw new UnauthorizedAccessException("Bu çalışana erişim yetkiniz yok.");
+        if (CurrentUserRole == "Manager")
+        {
+            var managerEmployeeId = CurrentEmployeeId;
+            if (managerEmployeeId is null || (emp.Id != managerEmployeeId.Value && emp.ManagerId != managerEmployeeId.Value))
+                throw new ForbiddenAccessException("Bu çalışana erişim yetkiniz yok.");
+        }
 
         return Ok(ApiResponse<object>.Ok(emp));
     }
@@ -108,12 +113,12 @@ public class EmployeesController : BaseController
                 ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
 
             if (employeeId != id)
-                throw new UnauthorizedAccessException("Bu çalışanın aksiyon planlarına erişim yetkiniz yok.");
+                throw new ForbiddenAccessException("Bu çalışanın aksiyon planlarına erişim yetkiniz yok.");
         }
         else
         {
             if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
-                throw new UnauthorizedAccessException("Bu çalışanın aksiyon planlarına erişim yetkiniz yok.");
+                throw new ForbiddenAccessException("Bu çalışanın aksiyon planlarına erişim yetkiniz yok.");
 
             await EnsureManagerCanAccessEmployeeAsync(id, _employees);
         }

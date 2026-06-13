@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
@@ -41,7 +42,7 @@ public class EmployeeTaskService : IEmployeeTaskService
             ?? throw new KeyNotFoundException($"Görev bulunamadı: {taskId}");
 
         if (task.EmployeeId != employeeId)
-            throw new UnauthorizedAccessException("Bu göreve erişim yetkiniz yok.");
+            throw new ForbiddenAccessException("Bu göreve erişim yetkiniz yok.");
 
         // Validate transition
         var current = task.Status;

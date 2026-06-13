@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
@@ -119,12 +120,12 @@ public class ActionPlansController : BaseController
             var employeeId = CurrentEmployeeId
                 ?? throw new UnauthorizedAccessException("Token'da çalışan kimliği bulunamadı.");
             if (plan.EmployeeId != employeeId)
-                throw new UnauthorizedAccessException("Bu gelişim planına erişim yetkiniz yok.");
+                throw new ForbiddenAccessException("Bu gelişim planına erişim yetkiniz yok.");
         }
         else
         {
             if (CurrentUserRole is not ("Admin" or "HR" or "Manager"))
-                throw new UnauthorizedAccessException("Bu gelişim planına erişim yetkiniz yok.");
+                throw new ForbiddenAccessException("Bu gelişim planına erişim yetkiniz yok.");
             await EnsureManagerCanAccessActionPlanAsync(id);
         }
 

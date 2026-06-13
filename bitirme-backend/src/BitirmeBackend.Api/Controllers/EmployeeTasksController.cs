@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Contracts.Common;
 using BitirmeBackend.Contracts.Requests;
@@ -60,7 +61,7 @@ public class EmployeeTasksController : BaseController
         {
             var empId = CurrentEmployeeId;
             if (empId is null || int.Parse(task.EmployeeId.ToString()) != empId.Value)
-                throw new UnauthorizedAccessException("Bu göreve erişim yetkiniz yok.");
+                throw new ForbiddenAccessException("Bu göreve erişim yetkiniz yok.");
         }
 
         return Ok(ApiResponse<object>.Ok(task));

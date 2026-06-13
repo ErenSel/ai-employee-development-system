@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Services;
 using BitirmeBackend.Domain.Entities;
@@ -82,7 +83,7 @@ public class EmployeeTaskServiceTests
     }
 
     [Fact]
-    public async Task UpdateTaskStatusAsync_WrongEmployee_ThrowsUnauthorized()
+    public async Task UpdateTaskStatusAsync_WrongEmployee_ThrowsForbidden()
     {
         var repo = new Mock<IEmployeeTaskRepository>();
         var task = MakeTask(employeeId: 10);  // task belongs to employee 10
@@ -90,7 +91,7 @@ public class EmployeeTaskServiceTests
 
         var svc = Build(repo);
         await svc.Invoking(s => s.UpdateTaskStatusAsync(1, employeeId: 99, EmployeeTaskStatus.InProgress))
-                 .Should().ThrowAsync<UnauthorizedAccessException>()
+                 .Should().ThrowAsync<ForbiddenAccessException>()
                  .WithMessage("*erişim yetkiniz yok*");
     }
 }

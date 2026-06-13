@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Contracts.Common;
 using Polly.CircuitBreaker;
 
@@ -35,6 +36,7 @@ public class ExceptionHandlingMiddleware
         var (statusCode, message) = ex switch
         {
             KeyNotFoundException => (HttpStatusCode.NotFound, ex.Message),
+            ForbiddenAccessException => (HttpStatusCode.Forbidden, ex.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ex.Message),
             ArgumentException => (HttpStatusCode.BadRequest, ex.Message),
             BrokenCircuitException => (HttpStatusCode.ServiceUnavailable, "ML servisi şu an kullanılamıyor"),

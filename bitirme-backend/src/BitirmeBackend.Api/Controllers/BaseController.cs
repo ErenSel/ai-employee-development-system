@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BitirmeBackend.Application.Exceptions;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -44,6 +45,6 @@ public abstract class BaseController : ControllerBase
         var managerEmployeeId = CurrentEmployeeId;
         if (managerEmployeeId is null ||
             !await EmployeeBelongsToManagerAsync(employeeId, managerEmployeeId.Value, repo))
-            throw new UnauthorizedAccessException("Bu çalışan sizin ekibinizde bulunmamaktadır.");
+            throw new ForbiddenAccessException("Bu çalışan sizin ekibinizde bulunmamaktadır.");
     }
 }
