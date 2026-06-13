@@ -170,6 +170,7 @@ builder.Services.AddScoped<IAssessmentService, AssessmentService>();
 builder.Services.AddScoped<IActionPlanService, ActionPlanService>();
 builder.Services.AddScoped<IEmployeeTaskService, EmployeeTaskService>();
 builder.Services.AddScoped<IPdfExportService, PdfExportService>();
+builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 
 // ── Build ──────────────────────────────────────────────────────────────────────
 var app = builder.Build();
