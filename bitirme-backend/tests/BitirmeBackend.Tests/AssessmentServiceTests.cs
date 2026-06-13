@@ -205,6 +205,7 @@ public class AssessmentServiceTests
 
         result.Should().HaveCount(1);
         result[0].AssignmentId.Should().Be(4);
+        result[0].EvaluatorEmployeeId.Should().Be(4);
         result[0].EmployeeName.Should().Be("Ayşe Kaya");
         result[0].CycleName.Should().Be("2025 Q4");
         result[0].CompetencyCount.Should().Be(13);

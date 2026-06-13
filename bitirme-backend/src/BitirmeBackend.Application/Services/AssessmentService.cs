@@ -250,14 +250,15 @@ public class AssessmentService : IAssessmentService
                 && (a.Assessment.Status == AssessmentStatus.Draft || a.Assessment.Status == AssessmentStatus.Completed))
             .Select(a => new MySurveyDto
             {
-                AssignmentId    = a.Id,
-                AssessmentId    = a.AssessmentId,
-                EmployeeId      = a.Assessment.EmployeeId,
-                EmployeeName    = a.Assessment.Employee?.FullName ?? string.Empty,
-                CycleId         = a.Assessment.CycleId,
-                CycleName       = a.Assessment.Cycle?.Name ?? string.Empty,
-                EvaluatorType   = a.EvaluatorType,
-                CompetencyCount = RequiredCompetencyCount
+                AssignmentId        = a.Id,
+                AssessmentId        = a.AssessmentId,
+                EvaluatorEmployeeId = a.EvaluatorEmployeeId,
+                EmployeeId          = a.Assessment.EmployeeId,
+                EmployeeName        = a.Assessment.Employee?.FullName ?? string.Empty,
+                CycleId             = a.Assessment.CycleId,
+                CycleName           = a.Assessment.Cycle?.Name ?? string.Empty,
+                EvaluatorType       = a.EvaluatorType,
+                CompetencyCount     = RequiredCompetencyCount
             })
             .ToList();
     }
