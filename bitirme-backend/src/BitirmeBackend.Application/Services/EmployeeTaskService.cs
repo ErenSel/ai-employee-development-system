@@ -107,8 +107,11 @@ public class EmployeeTaskService : IEmployeeTaskService
     {
         Id                  = t.Id,
         ActionPlanItemId    = t.ActionPlanItemId,
+        ActionPlanId        = t.ActionPlanItem?.ActionPlanId ?? 0,
         Title               = t.ActionPlanItem?.Title       ?? string.Empty,
         Description         = t.ActionPlanItem?.Description ?? string.Empty,
+        Resource            = t.ActionPlanItem?.Resource,
+        DeliveryType        = t.ActionPlanItem?.DeliveryType,
         Priority            = t.ActionPlanItem?.Priority.ToString() ?? string.Empty,
         EmployeeId          = t.EmployeeId,
         EmployeeName        = t.Employee?.FullName           ?? string.Empty,

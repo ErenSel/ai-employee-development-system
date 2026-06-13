@@ -28,11 +28,13 @@ public class AuthController : BaseController
         return Ok(ApiResponse<object>.Ok(result));
     }
 
-    [Authorize]
+    // AllowAnonymous on purpose: logout must succeed even when the access token has expired.
+    // The refresh token in the body identifies the session to revoke; no JWT is required.
+    [AllowAnonymous]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
     {
-        await _authService.LogoutAsync(CurrentUserId, request.RefreshToken);
+        await _authService.LogoutAsync(request.RefreshToken);
         return Ok(ApiResponse<object>.Ok(new { }, "Çıkış başarılı."));
     }
 

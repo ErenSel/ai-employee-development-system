@@ -103,7 +103,7 @@ public class AssessmentService : IAssessmentService
             .ToList();
     }
 
-    public async Task<AssessmentScoreDto> UpsertAssessmentScoreAsync(int assessmentId, UpsertAssessmentScoreRequest request)
+    public async Task<AssessmentScoreDto> UpsertAssessmentScoreAsync(int assessmentId, UpsertAssessmentScoreRequest request, bool allowProxy = false)
     {
         _ = await _assessments.GetByIdAsync(assessmentId)
             ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {assessmentId}");
@@ -112,11 +112,16 @@ public class AssessmentService : IAssessmentService
             throw new ArgumentException($"Skor 0 ile 5 arasında olmalıdır. Girilen değer: {request.Score}");
 
         // 360°: scoring is gated by the evaluator's assignment, not the assessment status.
-        var assignment = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId)
-            ?? throw new ArgumentException("Bu değerlendirme için atama bulunamadı.");
-
-        if (assignment.IsCompleted)
-            throw new ArgumentException("Bu anketi zaten tamamladınız.");
+        // HR/Admin proxy ("God Mode") bypasses the assignment gate entirely so a score can be
+        // written on anyone's behalf, even with no assignment or an already-completed survey.
+        var assignment = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId);
+        if (!allowProxy)
+        {
+            if (assignment is null)
+                throw new ArgumentException("Bu değerlendirme için atama bulunamadı.");
+            if (assignment.IsCompleted)
+                throw new ArgumentException("Bu anketi zaten tamamladınız.");
+        }
 
         // Upsert keyed by (AssessmentId, CompetencyId, EvaluatorEmployeeId)
         var existing = await _assessments.GetScoreAsync(assessmentId, request.CompetencyId, request.EvaluatorEmployeeId);
@@ -156,13 +161,14 @@ public class AssessmentService : IAssessmentService
                 ?? savedCandidate;
 
         // Mark the survey complete once the evaluator has scored all 13 competencies.
+        // Only meaningful when an assignment exists (a pure HR/Admin proxy injection may have none).
         var scoredCompetencies = allScores
             .Where(s => s.EvaluatorEmployeeId == request.EvaluatorEmployeeId)
             .Select(s => s.CompetencyId)
             .Distinct()
             .Count();
 
-        if (scoredCompetencies >= RequiredCompetencyCount)
+        if (assignment is not null && !assignment.IsCompleted && scoredCompetencies >= RequiredCompetencyCount)
         {
             assignment.IsCompleted = true;
             assignment.CompletedAt = DateTime.UtcNow;
@@ -257,16 +263,37 @@ public class AssessmentService : IAssessmentService
         return assignments.Select(ToAssignmentDto).ToList();
     }
 
-    public async Task<AssessmentAssignmentDto> BulkUpsertScoresAsync(int assessmentId, BulkUpsertAssessmentScoreRequest request)
+    public async Task<AssessmentAssignmentDto> BulkUpsertScoresAsync(int assessmentId, BulkUpsertAssessmentScoreRequest request, bool allowProxy = false)
     {
         _ = await _assessments.GetByIdAsync(assessmentId)
             ?? throw new KeyNotFoundException($"Değerlendirme bulunamadı: {assessmentId}");
 
-        var assignment = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId)
-            ?? throw new ArgumentException("Bu değerlendirme için atama bulunamadı.");
+        var assignment = await _assessments.GetAssignmentAsync(assessmentId, request.EvaluatorEmployeeId);
 
-        if (assignment.IsCompleted)
+        if (assignment is null)
+        {
+            if (!allowProxy)
+                throw new ArgumentException("Bu değerlendirme için atama bulunamadı.");
+
+            // HR/Admin proxy ("God Mode"): no assignment yet — register one on the fly so the
+            // scores stay tied to an assignment and the completion/auto-complete flow still works.
+            if (!Enum.TryParse<EvaluatorType>(request.EvaluatorType, ignoreCase: true, out _))
+                throw new ArgumentException("Ataması olmayan bir değerlendirici adına toplu skor girişinde geçerli bir EvaluatorType (Self/Manager/Peer/Subordinate) zorunludur.");
+
+            assignment = new AssessmentAssignment
+            {
+                AssessmentId        = assessmentId,
+                EvaluatorEmployeeId = request.EvaluatorEmployeeId,
+                EvaluatorType       = request.EvaluatorType,
+                IsCompleted         = false
+            };
+            await _assessments.AddAssignmentAsync(assignment);
+            await _uow.SaveChangesAsync();
+        }
+        else if (assignment.IsCompleted && !allowProxy)
+        {
             throw new ArgumentException("Bu anketi zaten tamamladınız.");
+        }
 
         // Validate every score before persisting anything.
         foreach (var item in request.Scores)
@@ -312,7 +339,7 @@ public class AssessmentService : IAssessmentService
             .Distinct()
             .Count();
 
-        if (scoredCompetencies >= RequiredCompetencyCount)
+        if (!assignment.IsCompleted && scoredCompetencies >= RequiredCompetencyCount)
         {
             assignment.IsCompleted = true;
             assignment.CompletedAt = DateTime.UtcNow;

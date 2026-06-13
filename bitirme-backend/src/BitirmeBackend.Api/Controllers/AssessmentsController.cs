@@ -76,7 +76,7 @@ public class AssessmentsController : BaseController
     public async Task<IActionResult> UpsertScore(int id, [FromBody] UpsertAssessmentScoreRequest request)
     {
         await EnsureManagerCanAccessAssessmentAsync(id);
-        var result = await _assessmentService.UpsertAssessmentScoreAsync(id, request);
+        var result = await _assessmentService.UpsertAssessmentScoreAsync(id, request, IsProxyAllowed);
         return Ok(ApiResponse<object>.Ok(result));
     }
 
@@ -91,7 +91,7 @@ public class AssessmentsController : BaseController
         if (request.Score < 0.0 || request.Score > 5.0)
             return BadRequest(ApiResponse<object>.Fail($"Skor 0 ile 5 arasında olmalıdır. Girilen değer: {request.Score}"));
 
-        var result = await _assessmentService.UpsertAssessmentScoreAsync(id, request);
+        var result = await _assessmentService.UpsertAssessmentScoreAsync(id, request, IsProxyAllowed);
         return Ok(ApiResponse<object>.Ok(result));
     }
 
@@ -100,9 +100,15 @@ public class AssessmentsController : BaseController
     [HttpPost("{id:int}/scores/bulk")]
     public async Task<IActionResult> BulkUpsertScores(int id, [FromBody] BulkUpsertAssessmentScoreRequest request)
     {
-        var result = await _assessmentService.BulkUpsertScoresAsync(id, request);
+        var result = await _assessmentService.BulkUpsertScoresAsync(id, request, IsProxyAllowed);
         return Ok(ApiResponse<object>.Ok(result));
     }
+
+    /// <summary>
+    /// HR and Admin may enter scores on anyone's behalf ("Temsili / God Mode"), bypassing the
+    /// 360° assignment gate. Manager and Employee remain bound to their own assignments.
+    /// </summary>
+    private bool IsProxyAllowed => CurrentUserRole is "HR" or "Admin";
 
     // ── 360° evaluator assignments ─────────────────────────────────────────
 

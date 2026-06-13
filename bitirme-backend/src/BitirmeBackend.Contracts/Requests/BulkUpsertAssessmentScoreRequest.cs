@@ -6,6 +6,14 @@ namespace BitirmeBackend.Contracts.Requests;
 public class BulkUpsertAssessmentScoreRequest
 {
     public int EvaluatorEmployeeId { get; set; }
+
+    /// <summary>
+    /// Evaluator role (Self/Manager/Peer/Subordinate). Optional for the normal flow —
+    /// the existing assignment supplies it. Required only when an HR/Admin proxy submits
+    /// scores for an evaluator that has no assignment yet.
+    /// </summary>
+    public string EvaluatorType { get; set; } = string.Empty;
+
     public List<ScoreItem> Scores { get; set; } = [];
 
     public class ScoreItem

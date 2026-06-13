@@ -7,6 +7,12 @@ public interface IAuthService
 {
     Task<LoginResponse> LoginAsync(LoginRequest request);
     Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest request);
-    Task LogoutAsync(int userId, string refreshToken);
+
+    /// <summary>
+    /// Revokes the given refresh token. Resolves the owning user from the token itself, so it
+    /// works without a valid access token and is idempotent — an unknown/already-revoked/expired
+    /// token still completes successfully (no exception).
+    /// </summary>
+    Task LogoutAsync(string refreshToken);
     Task<CurrentUserResponse> GetCurrentUserAsync(int userId);
 }

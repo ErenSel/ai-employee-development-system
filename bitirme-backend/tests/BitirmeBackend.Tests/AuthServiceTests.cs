@@ -18,13 +18,15 @@ public class AuthServiceTests
         Mock<IPasswordHasher>? hasher = null,
         Mock<ITokenService>? tokens = null,
         Mock<IRefreshTokenService>? refreshSvc = null,
-        Mock<IRefreshTokenRepository>? refreshRepo = null)
+        Mock<IRefreshTokenRepository>? refreshRepo = null,
+        Mock<IUnitOfWork>? uow = null)
     {
         users      ??= new Mock<IUserRepository>();
         hasher     ??= new Mock<IPasswordHasher>();
         tokens     ??= new Mock<ITokenService>();
         refreshSvc ??= new Mock<IRefreshTokenService>();
         refreshRepo ??= new Mock<IRefreshTokenRepository>();
+        uow        ??= new Mock<IUnitOfWork>();
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -39,6 +41,7 @@ public class AuthServiceTests
             tokens.Object,
             refreshSvc.Object,
             refreshRepo.Object,
+            uow.Object,
             config);
     }
 

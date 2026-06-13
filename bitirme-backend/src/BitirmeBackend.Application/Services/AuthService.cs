@@ -13,6 +13,7 @@ public class AuthService : IAuthService
     private readonly ITokenService _tokens;
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
+    private readonly IUnitOfWork _uow;
     private readonly IConfiguration _config;
 
     public AuthService(
@@ -21,6 +22,7 @@ public class AuthService : IAuthService
         ITokenService tokens,
         IRefreshTokenService refreshTokenService,
         IRefreshTokenRepository refreshTokenRepo,
+        IUnitOfWork uow,
         IConfiguration config)
     {
         _users = users;
@@ -28,6 +30,7 @@ public class AuthService : IAuthService
         _tokens = tokens;
         _refreshTokenService = refreshTokenService;
         _refreshTokenRepo = refreshTokenRepo;
+        _uow = uow;
         _config = config;
     }
 
@@ -49,6 +52,7 @@ public class AuthService : IAuthService
         var refreshExpiry = GetRefreshExpiry();
 
         await _refreshTokenService.CreateRefreshTokenAsync(user.Id, rawRefreshToken, refreshExpiry);
+        await _uow.SaveChangesAsync();
 
         return new LoginResponse
         {
@@ -92,6 +96,7 @@ public class AuthService : IAuthService
         // Token rotation: revoke old, create new
         await _refreshTokenService.RevokeRefreshTokenAsync(userId, rawToken, newRawRefreshToken);
         await _refreshTokenService.CreateRefreshTokenAsync(userId, newRawRefreshToken, refreshExpiry);
+        await _uow.SaveChangesAsync();
 
         return new RefreshTokenResponse
         {
@@ -101,9 +106,21 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task LogoutAsync(int userId, string rawRefreshToken)
+    public async Task LogoutAsync(string rawRefreshToken)
     {
-        await _refreshTokenService.RevokeRefreshTokenAsync(userId, rawRefreshToken);
+        // Idempotent: nothing to revoke (no/blank token, or already revoked/expired/unknown) →
+        // logout is still a success. This keeps logout working even when the access token has
+        // already expired, so the client never gets stuck in a 401 retry loop.
+        if (string.IsNullOrWhiteSpace(rawRefreshToken))
+            return;
+
+        var hash = ComputeHash(rawRefreshToken);
+        var storedToken = await _refreshTokenRepo.GetByTokenHashAsync(hash);
+        if (storedToken is null)
+            return;
+
+        await _refreshTokenService.RevokeRefreshTokenAsync(storedToken.UserId, rawRefreshToken);
+        await _uow.SaveChangesAsync();
     }
 
     public async Task<CurrentUserResponse> GetCurrentUserAsync(int userId)
