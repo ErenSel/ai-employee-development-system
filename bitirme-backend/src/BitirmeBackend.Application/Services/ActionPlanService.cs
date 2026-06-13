@@ -398,7 +398,7 @@ public class ActionPlanService : IActionPlanService
                     ActionPlanItemId  = item.Id,
                     EmployeeId        = plan.EmployeeId,
                     AssignedByUserId  = requestingUserId,
-                    Status            = EmployeeTaskStatus.Assigned,
+                    Status            = EmployeeTaskStatus.Pending,
                     AssignedAt        = DateTime.UtcNow,
                     DueDate           = item.DueDate
                 };

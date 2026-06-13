@@ -21,7 +21,7 @@ public class EmployeeTaskServiceTests
     private static EmployeeTask MakeTask(
         int taskId      = 1,
         int employeeId  = 10,
-        EmployeeTaskStatus status = EmployeeTaskStatus.Assigned) => new()
+        EmployeeTaskStatus status = EmployeeTaskStatus.Pending) => new()
     {
         Id               = taskId,
         EmployeeId       = employeeId,
@@ -36,10 +36,10 @@ public class EmployeeTaskServiceTests
     // ── UpdateTaskStatusAsync ─────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpdateTaskStatusAsync_AssignedToInProgress_Succeeds()
+    public async Task UpdateTaskStatusAsync_PendingToInProgress_Succeeds()
     {
         var repo = new Mock<IEmployeeTaskRepository>();
-        var task = MakeTask(status: EmployeeTaskStatus.Assigned);
+        var task = MakeTask(status: EmployeeTaskStatus.Pending);
         repo.Setup(r => r.GetByIdWithDetailsAsync(1)).ReturnsAsync(task);
         repo.Setup(r => r.Update(It.IsAny<EmployeeTask>()));
 
@@ -69,14 +69,14 @@ public class EmployeeTaskServiceTests
     }
 
     [Fact]
-    public async Task UpdateTaskStatusAsync_InProgressToAssigned_ThrowsArgumentException()
+    public async Task UpdateTaskStatusAsync_InProgressToPending_ThrowsArgumentException()
     {
         var repo = new Mock<IEmployeeTaskRepository>();
         var task = MakeTask(status: EmployeeTaskStatus.InProgress);
         repo.Setup(r => r.GetByIdWithDetailsAsync(1)).ReturnsAsync(task);
 
         var svc = Build(repo);
-        await svc.Invoking(s => s.UpdateTaskStatusAsync(1, employeeId: 10, EmployeeTaskStatus.Assigned))
+        await svc.Invoking(s => s.UpdateTaskStatusAsync(1, employeeId: 10, EmployeeTaskStatus.Pending))
                  .Should().ThrowAsync<ArgumentException>()
                  .WithMessage("*Geçersiz durum geçişi*");
     }

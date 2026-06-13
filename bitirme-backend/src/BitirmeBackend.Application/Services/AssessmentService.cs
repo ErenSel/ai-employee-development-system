@@ -95,8 +95,12 @@ public class AssessmentService : IAssessmentService
         if (a.Status != AssessmentStatus.Draft)
             throw new ArgumentException($"Yalnızca Draft durumundaki değerlendirmeler tamamlanabilir. Mevcut durum: {a.Status}");
 
-        a.Status    = AssessmentStatus.Completed;
-        a.UpdatedAt = DateTime.UtcNow;
+        // FIX 8: manual/force close (bypass) — average the scores collected so far into
+        // OverallScore, mirroring the auto-complete path. Missing evaluators are simply skipped.
+        var scores = await _assessments.GetScoresByAssessmentIdAsync(id);
+        a.Status       = AssessmentStatus.Completed;
+        a.OverallScore = CalculateOverallScore(scores);
+        a.UpdatedAt    = DateTime.UtcNow;
         _assessments.Update(a);
         await _uow.SaveChangesAsync();
 

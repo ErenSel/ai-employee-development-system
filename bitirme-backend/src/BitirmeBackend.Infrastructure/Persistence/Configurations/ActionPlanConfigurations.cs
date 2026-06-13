@@ -77,7 +77,16 @@ public class EmployeeTaskConfiguration : IEntityTypeConfiguration<EmployeeTask>
     {
         b.ToTable("EmployeeTasks");
         b.HasKey(x => x.Id);
-        b.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+        // Status persisted as string. Reads tolerate the legacy "Assigned" literal (renamed to
+        // "Pending") so existing rows keep working after the rename.
+        b.Property(x => x.Status)
+            .HasConversion(
+                v => v.ToString(),
+                v => v == "Assigned"
+                    ? Domain.Enums.EmployeeTaskStatus.Pending
+                    : Enum.Parse<Domain.Enums.EmployeeTaskStatus>(v, ignoreCase: true))
+            .HasMaxLength(50)
+            .IsRequired();
         b.HasIndex(x => x.EmployeeId);
 
         // At most one active (non-deleted) task per action plan item — enforces send idempotency.

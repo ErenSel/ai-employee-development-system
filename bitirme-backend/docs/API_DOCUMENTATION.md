@@ -1018,7 +1018,7 @@ Giriş yapmış çalışanın kendi görev listesini sayfalı döndürür.
       "employeeName": "Ayşe Kaya",
       "assignedByUserId": 2,
       "assignedByUserName": "HR User",
-      "status": "Assigned",
+      "status": "Pending",
       "assignedAt": "2024-10-16T11:00:00Z",
       "dueDate": null,
       "completedAt": null

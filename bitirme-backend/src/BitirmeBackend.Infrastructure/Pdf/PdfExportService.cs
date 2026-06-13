@@ -59,6 +59,8 @@ public class PdfExportService : IPdfExportService
         var employee   = plan.Employee;
         var department = employee?.Department?.Name ?? "-";
         var jobRole    = employee?.JobRole?.Name    ?? "-";
+        var employeeCode = string.IsNullOrWhiteSpace(employee?.EmployeeCode) ? "-" : employee!.EmployeeCode;
+        var managerName  = string.IsNullOrWhiteSpace(employee?.Manager?.FullName) ? "-" : employee!.Manager!.FullName;
         var cycleName  = assessment?.Cycle?.Name    ?? $"Değerlendirme #{plan.AssessmentId}";
 
         var pdfBytes = Document.Create(container =>
@@ -90,8 +92,10 @@ public class PdfExportService : IPdfExportService
                         }
 
                         InfoRow("Çalışan:",        employee?.FullName     ?? "-");
+                        InfoRow("Çalışan Kodu:",   employeeCode);
                         InfoRow("Departman:",      department);
                         InfoRow("Pozisyon:",       jobRole);
+                        InfoRow("Yönetici:",       managerName);
                         InfoRow("Değerlendirme Dönemi:", cycleName);
                         InfoRow("Oluşturma Tarihi:", plan.CreatedAt.ToString("dd.MM.yyyy"));
                         InfoRow("Onay Tarihi:",    plan.ApprovedAt?.ToString("dd.MM.yyyy") ?? "-");
@@ -203,7 +207,7 @@ public class PdfExportService : IPdfExportService
 
     private static string MapTaskStatus(EmployeeTaskStatus s) => s switch
     {
-        EmployeeTaskStatus.Assigned   => "Atandı",
+        EmployeeTaskStatus.Pending    => "Beklemede",
         EmployeeTaskStatus.InProgress => "Devam Ediyor",
         EmployeeTaskStatus.Completed  => "Tamamlandı",
         EmployeeTaskStatus.Cancelled  => "İptal",

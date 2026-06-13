@@ -38,11 +38,11 @@ public class AssessmentsController : BaseController
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<object>.Ok(result));
     }
 
-    [Authorize(Policy = "HrOrManager")]
+    // FIX 9: force-close (bypass) is an HR/Admin-only action; Manager is excluded per the role matrix.
+    [Authorize(Policy = "HrOrAdmin")]
     [HttpPut("{id:int}/complete")]
     public async Task<IActionResult> Complete(int id)
     {
-        await EnsureManagerCanAccessAssessmentAsync(id);
         var result = await _assessmentService.CompleteAssessmentAsync(id);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -100,6 +100,12 @@ public class AssessmentsController : BaseController
     [HttpPost("{id:int}/scores/bulk")]
     public async Task<IActionResult> BulkUpsertScores(int id, [FromBody] BulkUpsertAssessmentScoreRequest request)
     {
+        // Security: a non-proxy caller (Employee/Manager) may only submit their OWN scores.
+        // Without this, any authenticated user could post to another evaluator's assignment.
+        // HR/Admin proxy ("God Mode") is exempt and may submit on anyone's behalf.
+        if (!IsProxyAllowed && request.EvaluatorEmployeeId != CurrentEmployeeId)
+            throw new UnauthorizedAccessException("Yalnızca kendi değerlendirme anketinizi gönderebilirsiniz.");
+
         var result = await _assessmentService.BulkUpsertScoresAsync(id, request, IsProxyAllowed);
         return Ok(ApiResponse<object>.Ok(result));
     }

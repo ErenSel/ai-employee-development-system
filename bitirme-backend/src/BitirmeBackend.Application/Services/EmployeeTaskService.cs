@@ -47,9 +47,9 @@ public class EmployeeTaskService : IEmployeeTaskService
         var current = task.Status;
         var valid = (current, newStatus) switch
         {
-            (EmployeeTaskStatus.Assigned,   EmployeeTaskStatus.InProgress)  => true,
+            (EmployeeTaskStatus.Pending,    EmployeeTaskStatus.InProgress)  => true,
             (EmployeeTaskStatus.InProgress, EmployeeTaskStatus.Completed)   => true,
-            (EmployeeTaskStatus.Assigned,   EmployeeTaskStatus.Cancelled)   => true,
+            (EmployeeTaskStatus.Pending,    EmployeeTaskStatus.Cancelled)   => true,
             _ => false
         };
 
