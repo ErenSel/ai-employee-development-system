@@ -29,6 +29,7 @@ public abstract class BaseController : ControllerBase
     /// <summary>True if the given employee's ManagerId matches the manager's own employee id.</summary>
     protected async Task<bool> EmployeeBelongsToManagerAsync(int employeeId, int managerEmployeeId, IEmployeeRepository repo)
     {
+        if (employeeId == managerEmployeeId) return true;
         var employee = await repo.GetByIdAsync(employeeId);
         return employee is not null && employee.ManagerId == managerEmployeeId;
     }
