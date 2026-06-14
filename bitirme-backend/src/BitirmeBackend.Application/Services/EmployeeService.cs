@@ -11,11 +11,13 @@ public class EmployeeService : IEmployeeService
 {
     private readonly IEmployeeRepository _employees;
     private readonly IAssessmentRepository _assessments;
+    private readonly IUnitOfWork _uow;
 
-    public EmployeeService(IEmployeeRepository employees, IAssessmentRepository assessments)
+    public EmployeeService(IEmployeeRepository employees, IAssessmentRepository assessments, IUnitOfWork uow)
     {
         _employees = employees;
         _assessments = assessments;
+        _uow = uow;
     }
 
     public async Task<PagedResponse<EmployeeListItemDto>> GetEmployeesAsync(int pageNumber, int pageSize, int? managerId = null)
@@ -68,6 +70,8 @@ public class EmployeeService : IEmployeeService
         };
 
         await _employees.AddAsync(emp);
+        await _uow.SaveChangesAsync();
+
         var created = await _employees.GetByIdWithDetailsAsync(emp.Id)
             ?? throw new InvalidOperationException("Oluşturulan çalışan yüklenemedi.");
         return ToDetail(created);
@@ -103,6 +107,7 @@ public class EmployeeService : IEmployeeService
         emp.UpdatedAt             = DateTime.UtcNow;
 
         _employees.Update(emp);
+        await _uow.SaveChangesAsync();
 
         var updated = await _employees.GetByIdWithDetailsAsync(id)
             ?? throw new InvalidOperationException("Güncellenen çalışan yüklenemedi.");
