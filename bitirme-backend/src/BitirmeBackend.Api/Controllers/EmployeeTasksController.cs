@@ -68,7 +68,7 @@ public class EmployeeTasksController : BaseController
     }
 
     /// <summary>Updates a task's status. Only the owning employee may call this.</summary>
-    [Authorize(Policy = "EmployeeOnly")]
+    [Authorize(Policy = "Authenticated")]
     [HttpPut("{id:int}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateEmployeeTaskStatusRequest request)
     {
