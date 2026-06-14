@@ -20,6 +20,7 @@ public class ActionPlanService : IActionPlanService
     private readonly IEmployeeService _employeeService;
     private readonly IMlPredictionClient _mlClient;
     private readonly IEmployeeTaskRepository _employeeTasks;
+    private readonly ICompetencyLabelResolver _competencyLabels;
     private readonly IUnitOfWork _uow;
 
     public ActionPlanService(
@@ -31,17 +32,19 @@ public class ActionPlanService : IActionPlanService
         IEmployeeService employeeService,
         IMlPredictionClient mlClient,
         IEmployeeTaskRepository employeeTasks,
+        ICompetencyLabelResolver competencyLabels,
         IUnitOfWork uow)
     {
-        _assessments     = assessments;
-        _actionPlans     = actionPlans;
-        _aiPredictions   = aiPredictions;
-        _actionCatalog   = actionCatalog;
-        _modelVersions   = modelVersions;
-        _employeeService = employeeService;
-        _mlClient        = mlClient;
-        _employeeTasks   = employeeTasks;
-        _uow             = uow;
+        _assessments      = assessments;
+        _actionPlans      = actionPlans;
+        _aiPredictions    = aiPredictions;
+        _actionCatalog    = actionCatalog;
+        _modelVersions    = modelVersions;
+        _employeeService  = employeeService;
+        _mlClient         = mlClient;
+        _employeeTasks    = employeeTasks;
+        _competencyLabels = competencyLabels;
+        _uow              = uow;
     }
 
     public async Task<ActionPlanDetailDto> GenerateDraftActionPlanAsync(GenerateActionPlanRequest request, int requestingUserId)
@@ -169,7 +172,10 @@ public class ActionPlanService : IActionPlanService
                 var predicted = predictedActions.First(p => p.ActionCode == action.Code);
                 catalog.TryGetValue(action.Code, out var entry);
 
-                var snapshot = ResolveContent(entry, action.Code, features.JobRole, features.Department);
+                var competencyLabel = _competencyLabels.Resolve(
+                    entry?.TargetCompetency, features.Department, features.JobRole);
+                var snapshot = ResolveContent(
+                    entry, action.Code, features.JobRole, features.Department, competencyLabel);
 
                 var item = new ActionPlanItem
                 {
@@ -537,7 +543,7 @@ public class ActionPlanService : IActionPlanService
     // Anything unparseable: documented fallback title/description
 
     private static (string Title, string Description, string? Resource, string? DeliveryType) ResolveContent(
-        ActionCatalog? entry, string actionCode, string jobRole, string department)
+        ActionCatalog? entry, string actionCode, string jobRole, string department, string competencyLabel)
     {
         var fallbackTitle = $"Gelişim Aksiyonu: {actionCode}";
         const string fallbackDescription = "Bu aksiyon için lütfen yöneticinizle iletişime geçin.";
@@ -575,7 +581,7 @@ public class ActionPlanService : IActionPlanService
                 return (fallbackTitle, fallbackDescription, resource, delivery);
 
             if (string.IsNullOrWhiteSpace(description))
-                description = $"{entry.TargetCompetency} yetkinliğini geliştirmeye yönelik {entry.ActionType} aksiyonu.";
+                description = $"{competencyLabel} yetkinliğini geliştirmeye yönelik {entry.ActionType} aksiyonu.";
 
             return (title!, description!, resource, delivery);
         }

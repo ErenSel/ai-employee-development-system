@@ -25,6 +25,7 @@ public class ActionPlanServiceTests
         Mock<IEmployeeService>         EmployeeService,
         Mock<IMlPredictionClient>      MlClient,
         Mock<IEmployeeTaskRepository>  EmployeeTasks,
+        Mock<ICompetencyLabelResolver> CompetencyLabels,
         Mock<IUnitOfWork>              Uow);
 
     private static (ActionPlanService Svc, Mocks M) Build()
@@ -38,6 +39,7 @@ public class ActionPlanServiceTests
             new Mock<IEmployeeService>(),
             new Mock<IMlPredictionClient>(),
             new Mock<IEmployeeTaskRepository>(),
+            new Mock<ICompetencyLabelResolver>(),
             new Mock<IUnitOfWork>());
 
         // Default UoW — everything is a no-op
@@ -45,6 +47,11 @@ public class ActionPlanServiceTests
         m.Uow.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
         m.Uow.Setup(u => u.CommitAsync(default)).Returns(Task.CompletedTask);
         m.Uow.Setup(u => u.RollbackAsync(default)).Returns(Task.CompletedTask);
+
+        // Default resolver — echo the code back (identity)
+        m.CompetencyLabels
+            .Setup(r => r.Resolve(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns((string? code, string? _, string? __) => code ?? string.Empty);
 
         var svc = new ActionPlanService(
             m.Assessments.Object,
@@ -55,6 +62,7 @@ public class ActionPlanServiceTests
             m.EmployeeService.Object,
             m.MlClient.Object,
             m.EmployeeTasks.Object,
+            m.CompetencyLabels.Object,
             m.Uow.Object);
 
         return (svc, m);

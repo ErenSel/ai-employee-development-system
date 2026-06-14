@@ -8,6 +8,7 @@ using BitirmeBackend.Application.Services;
 using BitirmeBackend.Infrastructure.ExternalServices;
 using BitirmeBackend.Infrastructure.Persistence;
 using BitirmeBackend.Infrastructure.Repositories;
+using BitirmeBackend.Infrastructure.Services;
 using BitirmeBackend.Api.Validators;
 using BitirmeBackend.Infrastructure.Pdf;
 using FluentValidation;
@@ -167,6 +168,7 @@ builder.Services.AddScoped<IActionPlanService, ActionPlanService>();
 builder.Services.AddScoped<IEmployeeTaskService, EmployeeTaskService>();
 builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
+builder.Services.AddSingleton<ICompetencyLabelResolver, CompetencyLabelResolver>();
 
 // ── Build ──────────────────────────────────────────────────────────────────────
 var app = builder.Build();
