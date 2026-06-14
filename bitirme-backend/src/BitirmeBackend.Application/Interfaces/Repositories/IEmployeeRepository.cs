@@ -17,4 +17,5 @@ public interface IEmployeeRepository
     void Update(Employee employee);
     Task<bool> DepartmentExistsAsync(int departmentId);
     Task<bool> JobRoleExistsAsync(int jobRoleId);
+    Task<List<Employee>> GetByDepartmentIdAsync(int departmentId);
 }

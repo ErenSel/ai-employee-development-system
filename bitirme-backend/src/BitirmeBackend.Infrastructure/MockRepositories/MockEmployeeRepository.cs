@@ -61,6 +61,9 @@ public class MockEmployeeRepository : IEmployeeRepository
     public Task<bool> DepartmentExistsAsync(int departmentId) =>
         Task.FromResult(MockDataStore.Departments.Any(d => d.Id == departmentId));
 
+    public Task<List<Employee>> GetByDepartmentIdAsync(int departmentId) =>
+        Task.FromResult(Active.Where(e => e.DepartmentId == departmentId).ToList());
+
     public Task<bool> JobRoleExistsAsync(int jobRoleId) =>
         Task.FromResult(MockDataStore.JobRoles.Any(j => j.Id == jobRoleId));
 }

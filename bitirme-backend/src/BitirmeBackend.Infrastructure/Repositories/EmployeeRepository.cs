@@ -51,6 +51,11 @@ public class EmployeeRepository : IEmployeeRepository
     public Task<bool> DepartmentExistsAsync(int departmentId) =>
         _db.Departments.AnyAsync(d => d.Id == departmentId && !d.IsDeleted);
 
+    public Task<List<Employee>> GetByDepartmentIdAsync(int departmentId) =>
+        _db.Employees
+            .Where(e => e.DepartmentId == departmentId && !e.IsDeleted)
+            .ToListAsync();
+
     public Task<bool> JobRoleExistsAsync(int jobRoleId) =>
         _db.JobRoles.AnyAsync(j => j.Id == jobRoleId && !j.IsDeleted);
 }

@@ -182,7 +182,7 @@ public class AssessmentServiceTests
 
         var assessment = new Assessment
         {
-            Id = 1, EmployeeId = 10, CycleId = 1, Status = AssessmentStatus.Completed,
+            Id = 1, EmployeeId = 10, CycleId = 1, Status = AssessmentStatus.Draft,
             Employee = new Employee { Id = 10, FullName = "Ayşe Kaya" },
             Cycle = new AssessmentCycle { Id = 1, Name = "2025 Q4" }
         };

@@ -66,8 +66,7 @@ public class AssessmentService : IAssessmentService
             IsCompleted         = false
         });
 
-        // FIX 5: auto-create the Manager assignment when the employee has a manager,
-        // so the manager's 360° survey appears without HR adding it manually.
+        // Auto-create Manager assignment and Peer assignments for same-department colleagues.
         var employee = await _employees.GetByIdAsync(request.EmployeeId);
         if (employee?.ManagerId is int managerId)
         {
@@ -76,6 +75,23 @@ public class AssessmentService : IAssessmentService
                 AssessmentId        = assessment.Id,
                 EvaluatorEmployeeId = managerId,
                 EvaluatorType       = "Manager",
+                IsCompleted         = false
+            });
+        }
+
+        // Auto-assign all same-department colleagues as Peer evaluators.
+        var peers = await _employees.GetByDepartmentIdAsync(employee?.DepartmentId ?? 0);
+        foreach (var peer in peers)
+        {
+            // Skip the employee themselves (already Self) and their manager (already Manager).
+            if (peer.Id == assessment.EmployeeId) continue;
+            if (employee?.ManagerId.HasValue == true && peer.Id == employee.ManagerId.Value) continue;
+
+            await _assessments.AddAssignmentAsync(new AssessmentAssignment
+            {
+                AssessmentId        = assessment.Id,
+                EvaluatorEmployeeId = peer.Id,
+                EvaluatorType       = "Peer",
                 IsCompleted         = false
             });
         }
@@ -247,7 +263,7 @@ public class AssessmentService : IAssessmentService
         return assignments
             .Where(a => !a.IsCompleted
                 && a.Assessment is not null
-                && (a.Assessment.Status == AssessmentStatus.Draft || a.Assessment.Status == AssessmentStatus.Completed))
+                && a.Assessment.Status == AssessmentStatus.Draft)
             .Select(a => new MySurveyDto
             {
                 AssignmentId        = a.Id,
