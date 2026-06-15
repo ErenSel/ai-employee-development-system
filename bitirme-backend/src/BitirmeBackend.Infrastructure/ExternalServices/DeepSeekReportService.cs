@@ -41,7 +41,8 @@ public class DeepSeekReportService : ILlmReportService
         var apiKey = _configuration["DeepSeek:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            _logger.LogInformation("DeepSeek API anahtarı yapılandırılmamış — değerlendirme metni atlanıyor.");
+            _logger.LogWarning(
+                "DeepSeek API anahtarı (DeepSeek:ApiKey) yapılandırılmamış — API çağrısı yapılmadan değerlendirme metni atlanıyor.");
             return string.Empty;
         }
 
@@ -73,19 +74,29 @@ public class DeepSeekReportService : ILlmReportService
             };
             request.Headers.Add("Authorization", $"Bearer {apiKey}");
 
+            _logger.LogInformation(
+                "DeepSeek API çağrısı başlıyor... Model={Model}, BaseUrl={BaseUrl}",
+                model, _http.BaseAddress);
+
             using var response = await _http.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("DeepSeek isteği başarısız oldu. Status={Status}", response.StatusCode);
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _logger.LogError(
+                    "DeepSeek isteği başarısız oldu. Status={Status}, Body={Body}",
+                    response.StatusCode, errorBody);
                 return string.Empty;
             }
 
             var responseJson = await response.Content.ReadAsStringAsync();
-            return ParseContent(responseJson);
+            var summary = ParseContent(responseJson);
+
+            _logger.LogInformation("DeepSeek yanıtı alındı, {Length} karakter", summary.Length);
+            return summary;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "DeepSeek değerlendirme metni üretilemedi — metin olmadan devam ediliyor.");
+            _logger.LogError(ex, "DeepSeek değerlendirme metni üretilemedi — metin olmadan devam ediliyor.");
             return string.Empty;
         }
     }
