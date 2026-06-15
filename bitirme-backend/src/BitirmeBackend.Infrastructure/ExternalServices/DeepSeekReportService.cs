@@ -1,0 +1,151 @@
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using BitirmeBackend.Application.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace BitirmeBackend.Infrastructure.ExternalServices;
+
+/// <summary>
+/// Generates an action plan evaluation summary via the DeepSeek chat completions API
+/// (OpenAI-compatible format). Failures and timeouts are swallowed and an empty string
+/// is returned so PDF generation never breaks because of the LLM call.
+/// </summary>
+public class DeepSeekReportService : ILlmReportService
+{
+    private const string SystemPrompt =
+        "Sen bir İK uzmanısın. Çalışan değerlendirme raporları için kısa, kişisel ve motive edici Türkçe metinler yazıyorsun. Metinler 3-4 paragraf olmalı, gereksiz uzun olmamalı. Resmi ama sıcak bir dil kullan.";
+
+    private readonly HttpClient _http;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<DeepSeekReportService> _logger;
+
+    public DeepSeekReportService(
+        HttpClient http,
+        IConfiguration configuration,
+        ILogger<DeepSeekReportService> logger)
+    {
+        _http = http;
+        _configuration = configuration;
+        _logger = logger;
+    }
+
+    public async Task<string> GenerateActionPlanSummaryAsync(
+        string employeeName,
+        string department,
+        string jobRole,
+        List<(string CompetencyName, double Score)> competencyScores,
+        List<string> actionItemTitles)
+    {
+        var apiKey = _configuration["DeepSeek:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            _logger.LogInformation("DeepSeek API anahtarı yapılandırılmamış — değerlendirme metni atlanıyor.");
+            return string.Empty;
+        }
+
+        var model = _configuration["DeepSeek:Model"] ?? "deepseek-v4-flash";
+        var maxTokens = int.TryParse(_configuration["DeepSeek:MaxTokens"], out var mt) ? mt : 600;
+
+        var userPrompt = BuildUserPrompt(employeeName, department, jobRole, competencyScores, actionItemTitles);
+
+        var payload = new
+        {
+            model,
+            messages = new[]
+            {
+                new { role = "system", content = SystemPrompt },
+                new { role = "user",   content = userPrompt }
+            },
+            max_tokens = maxTokens,
+            temperature = 0.7
+        };
+
+        try
+        {
+            var json = JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/completions")
+            {
+                Content = content
+            };
+            request.Headers.Add("Authorization", $"Bearer {apiKey}");
+
+            using var response = await _http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("DeepSeek isteği başarısız oldu. Status={Status}", response.StatusCode);
+                return string.Empty;
+            }
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+            return ParseContent(responseJson);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DeepSeek değerlendirme metni üretilemedi — metin olmadan devam ediliyor.");
+            return string.Empty;
+        }
+    }
+
+    private static string BuildUserPrompt(
+        string employeeName,
+        string department,
+        string jobRole,
+        List<(string CompetencyName, double Score)> competencyScores,
+        List<string> actionItemTitles)
+    {
+        var ci = CultureInfo.GetCultureInfo("tr-TR");
+
+        var scoreLines = competencyScores.Count == 0
+            ? "- (skor bulunmuyor)"
+            : string.Join("\n", competencyScores.Select(s =>
+                $"- {s.CompetencyName}: {s.Score.ToString("F1", ci)}"));
+
+        var taskLines = actionItemTitles.Count == 0
+            ? "- (görev bulunmuyor)"
+            : string.Join("\n", actionItemTitles.Select(t => $"- {t}"));
+
+        return
+$@"Aşağıdaki bilgilere göre {employeeName} için kişisel bir gelişim değerlendirmesi yaz.
+
+Çalışan: {employeeName}
+Departman: {department}
+Pozisyon: {jobRole}
+
+Yetkinlik Skorları (5 üzerinden):
+{scoreLines}
+
+Oluşturulan Gelişim Görevleri:
+{taskLines}
+
+Değerlendirme şunları içermeli:
+1. Çalışanın genel durumunu özetle (güçlü ve gelişim gerektiren alanlar)
+2. Her göreve neden ihtiyaç duyulduğunu kısaca açıkla
+3. Motive edici, pozitif ve kişisel bir kapanış cümlesi ekle
+
+Türkçe yaz. 3-4 kısa paragraf. Başlık ekleme, direkt metne gir.";
+    }
+
+    private string ParseContent(string responseJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseJson);
+            var content = doc.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+            return content?.Trim() ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DeepSeek yanıtı ayrıştırılamadı.");
+            return string.Empty;
+        }
+    }
+}

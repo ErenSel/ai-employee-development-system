@@ -1,3 +1,4 @@
+using BitirmeBackend.Application.Interfaces;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Domain.Entities;
@@ -32,15 +33,18 @@ public class PdfExportService : IPdfExportService
     private readonly IActionPlanRepository _actionPlans;
     private readonly IAssessmentRepository _assessments;
     private readonly IEmployeeTaskRepository _employeeTasks;
+    private readonly ILlmReportService _llmReportService;
 
     public PdfExportService(
         IActionPlanRepository actionPlans,
         IAssessmentRepository assessments,
-        IEmployeeTaskRepository employeeTasks)
+        IEmployeeTaskRepository employeeTasks,
+        ILlmReportService llmReportService)
     {
-        _actionPlans   = actionPlans;
-        _assessments   = assessments;
-        _employeeTasks = employeeTasks;
+        _actionPlans      = actionPlans;
+        _assessments      = assessments;
+        _employeeTasks    = employeeTasks;
+        _llmReportService = llmReportService;
     }
 
     public async Task<byte[]> GenerateActionPlanPdfAsync(int actionPlanId)
@@ -91,6 +95,19 @@ public class PdfExportService : IPdfExportService
         int high       = items.Count(i => i.Priority == PriorityLevel.High);
         int progressPct = total == 0 ? 0 : (int)Math.Round(completed * 100.0 / total);
 
+        // 7. Build LLM evaluation summary (best-effort — empty string skips the section)
+        var competencyScores = (assessment?.Scores ?? Enumerable.Empty<AssessmentScore>())
+            .Where(s => !s.IsDeleted)
+            .GroupBy(s => new { s.CompetencyId, Name = s.Competency?.Name ?? string.Empty })
+            .Select(g => (CompetencyName: g.Key.Name, Score: g.Average(s => s.Score)))
+            .Where(x => !string.IsNullOrWhiteSpace(x.CompetencyName))
+            .ToList();
+
+        var actionItemTitles = items.Select(i => i.Title).ToList();
+
+        var summaryText = await _llmReportService.GenerateActionPlanSummaryAsync(
+            employeeName, department, jobRole, competencyScores, actionItemTitles);
+
         var pdfBytes = Document.Create(container =>
         {
             container.Page(page =>
@@ -130,6 +147,21 @@ public class PdfExportService : IPdfExportService
                     // Summary statistics strip
                     col.Item().PaddingTop(16).Element(c => SummaryStrip(c,
                         total, completed, inProgress, pending, high, progressPct));
+
+                    // AI-generated personalized evaluation (only when LLM returned text)
+                    if (!string.IsNullOrWhiteSpace(summaryText))
+                    {
+                        col.Item().PaddingTop(20).PaddingBottom(8).Row(r =>
+                        {
+                            r.ConstantItem(4).Background(Accent);
+                            r.ConstantItem(8);
+                            r.RelativeItem().AlignMiddle().Text("Kişisel Gelişim Değerlendirmesi")
+                                .FontSize(14).Bold().FontColor(Primary);
+                        });
+
+                        col.Item().PaddingBottom(8).Text(summaryText)
+                            .FontSize(10).FontColor(TextDark).LineHeight(1.4f);
+                    }
 
                     // Section title
                     col.Item().PaddingTop(20).PaddingBottom(8).Row(r =>

@@ -157,6 +157,14 @@ else
     builder.Services.AddSingleton<IMlPredictionClient, FakeMlPredictionClient>();
 }
 
+// ── DeepSeek LLM report service (PDF action plan summary) ───────────────────────
+var deepSeekBaseUrl = builder.Configuration["DeepSeek:BaseUrl"] ?? "https://api.deepseek.com";
+builder.Services.AddHttpClient<ILlmReportService, DeepSeekReportService>(client =>
+{
+    client.BaseAddress = new Uri(deepSeekBaseUrl);
+    client.Timeout     = TimeSpan.FromSeconds(10);
+});
+
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
