@@ -12,6 +12,12 @@ public class ActionPlan : BaseEntity
     public DateTime? ApprovedAt { get; set; }
     public DateTime? SentAt { get; set; }
 
+    /// <summary>
+    /// LLM-generated personalized evaluation text, produced once when the plan is created
+    /// and reused by the PDF export. Null/empty means no summary (PDF skips the section).
+    /// </summary>
+    public string? AiSummary { get; set; }
+
     public Assessment Assessment { get; set; } = null!;
     public Employee Employee { get; set; } = null!;
     public User CreatedByUser { get; set; } = null!;

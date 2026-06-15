@@ -1,4 +1,3 @@
-using BitirmeBackend.Application.Interfaces;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Domain.Entities;
 using BitirmeBackend.Domain.Enums;
@@ -13,12 +12,8 @@ public class PdfExportServiceTests
     private static PdfExportService Build(
         Mock<IActionPlanRepository>   planRepo,
         Mock<IAssessmentRepository>   assessmentRepo,
-        Mock<IEmployeeTaskRepository> taskRepo,
-        Mock<ILlmReportService>?      llmReport = null)
-    {
-        llmReport ??= new Mock<ILlmReportService>();
-        return new(planRepo.Object, assessmentRepo.Object, taskRepo.Object, llmReport.Object);
-    }
+        Mock<IEmployeeTaskRepository> taskRepo) =>
+        new(planRepo.Object, assessmentRepo.Object, taskRepo.Object);
 
     private static ActionPlan MakeFullPlan(int id = 1) => new()
     {

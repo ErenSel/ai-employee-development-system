@@ -26,6 +26,7 @@ public class ActionPlanServiceTests
         Mock<IMlPredictionClient>      MlClient,
         Mock<IEmployeeTaskRepository>  EmployeeTasks,
         Mock<ICompetencyLabelResolver> CompetencyLabels,
+        Mock<ILlmReportService>        LlmReport,
         Mock<IUnitOfWork>              Uow);
 
     private static (ActionPlanService Svc, Mocks M) Build()
@@ -40,6 +41,7 @@ public class ActionPlanServiceTests
             new Mock<IMlPredictionClient>(),
             new Mock<IEmployeeTaskRepository>(),
             new Mock<ICompetencyLabelResolver>(),
+            new Mock<ILlmReportService>(),
             new Mock<IUnitOfWork>());
 
         // Default UoW — everything is a no-op
@@ -63,6 +65,7 @@ public class ActionPlanServiceTests
             m.MlClient.Object,
             m.EmployeeTasks.Object,
             m.CompetencyLabels.Object,
+            m.LlmReport.Object,
             m.Uow.Object);
 
         return (svc, m);

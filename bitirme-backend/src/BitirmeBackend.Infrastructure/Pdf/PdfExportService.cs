@@ -1,4 +1,3 @@
-using BitirmeBackend.Application.Interfaces;
 using BitirmeBackend.Application.Interfaces.Repositories;
 using BitirmeBackend.Application.Interfaces.Services;
 using BitirmeBackend.Domain.Entities;
@@ -33,18 +32,15 @@ public class PdfExportService : IPdfExportService
     private readonly IActionPlanRepository _actionPlans;
     private readonly IAssessmentRepository _assessments;
     private readonly IEmployeeTaskRepository _employeeTasks;
-    private readonly ILlmReportService _llmReportService;
 
     public PdfExportService(
         IActionPlanRepository actionPlans,
         IAssessmentRepository assessments,
-        IEmployeeTaskRepository employeeTasks,
-        ILlmReportService llmReportService)
+        IEmployeeTaskRepository employeeTasks)
     {
         _actionPlans      = actionPlans;
         _assessments      = assessments;
         _employeeTasks    = employeeTasks;
-        _llmReportService = llmReportService;
     }
 
     public async Task<byte[]> GenerateActionPlanPdfAsync(int actionPlanId)
@@ -95,18 +91,10 @@ public class PdfExportService : IPdfExportService
         int high       = items.Count(i => i.Priority == PriorityLevel.High);
         int progressPct = total == 0 ? 0 : (int)Math.Round(completed * 100.0 / total);
 
-        // 7. Build LLM evaluation summary (best-effort — empty string skips the section)
-        var competencyScores = (assessment?.Scores ?? Enumerable.Empty<AssessmentScore>())
-            .Where(s => !s.IsDeleted)
-            .GroupBy(s => new { s.CompetencyId, Name = s.Competency?.Name ?? string.Empty })
-            .Select(g => (CompetencyName: g.Key.Name, Score: g.Average(s => s.Score)))
-            .Where(x => !string.IsNullOrWhiteSpace(x.CompetencyName))
-            .ToList();
-
-        var actionItemTitles = items.Select(i => i.Title).ToList();
-
-        var summaryText = await _llmReportService.GenerateActionPlanSummaryAsync(
-            employeeName, department, jobRole, competencyScores, actionItemTitles);
+        // 7. LLM evaluation summary — read the pre-generated text stored on the plan
+        // (produced once at plan creation). Empty/null simply skips the PDF section;
+        // no LLM call happens during export.
+        var summaryText = plan.AiSummary;
 
         // Single timestamp shared by every page footer for consistency
         var generatedAt = DateTime.UtcNow;

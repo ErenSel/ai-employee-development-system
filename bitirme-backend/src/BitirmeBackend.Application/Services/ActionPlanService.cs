@@ -21,6 +21,7 @@ public class ActionPlanService : IActionPlanService
     private readonly IMlPredictionClient _mlClient;
     private readonly IEmployeeTaskRepository _employeeTasks;
     private readonly ICompetencyLabelResolver _competencyLabels;
+    private readonly ILlmReportService _llmReportService;
     private readonly IUnitOfWork _uow;
 
     public ActionPlanService(
@@ -33,6 +34,7 @@ public class ActionPlanService : IActionPlanService
         IMlPredictionClient mlClient,
         IEmployeeTaskRepository employeeTasks,
         ICompetencyLabelResolver competencyLabels,
+        ILlmReportService llmReportService,
         IUnitOfWork uow)
     {
         _assessments      = assessments;
@@ -44,6 +46,7 @@ public class ActionPlanService : IActionPlanService
         _mlClient         = mlClient;
         _employeeTasks    = employeeTasks;
         _competencyLabels = competencyLabels;
+        _llmReportService = llmReportService;
         _uow              = uow;
     }
 
@@ -167,6 +170,7 @@ public class ActionPlanService : IActionPlanService
             // Step 13: Create action plan items.
             // Title/Description/Resource/DeliveryType are parsed from ActionCatalog.ContentData
             // (JSONB) and snapshotted onto the item so future catalog edits don't alter the plan.
+            var createdItems = new List<ActionPlanItem>();
             foreach (var (action, rank) in recommendedActions)
             {
                 var predicted = predictedActions.First(p => p.ActionCode == action.Code);
@@ -194,7 +198,14 @@ public class ActionPlanService : IActionPlanService
                     OrderNo             = rank
                 };
                 await _actionPlans.AddItemAsync(item);
+                createdItems.Add(item);
             }
+
+            // Step 13b: Generate the LLM evaluation summary ONCE and store it on the plan,
+            // so PDF export can reuse it without calling the LLM again. Best-effort —
+            // any failure here must NOT abort plan generation (AiSummary stays empty).
+            plan.AiSummary = await BuildAiSummaryAsync(request.AssessmentId, employeeId, features, createdItems);
+            _actionPlans.Update(plan);
 
             // Step 14: Commit
             await _uow.SaveChangesAsync();
@@ -448,6 +459,46 @@ public class ActionPlanService : IActionPlanService
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    // Builds the LLM evaluation summary for a freshly created plan. Fully defensive:
+    // any failure (missing data, LLM error) yields an empty string instead of throwing,
+    // so plan generation is never blocked by the summary.
+    private async Task<string> BuildAiSummaryAsync(
+        int assessmentId, int employeeId, EmployeeFeatureDto features, List<ActionPlanItem> createdItems)
+    {
+        try
+        {
+            var scores = await _assessments.GetScoresByAssessmentIdAsync(assessmentId);
+            var competencyScores = (scores ?? Enumerable.Empty<AssessmentScore>())
+                .Where(s => !s.IsDeleted)
+                .GroupBy(s => new { s.CompetencyId, Name = s.Competency?.Name ?? string.Empty })
+                .Select(g => (CompetencyName: g.Key.Name, Score: g.Average(s => s.Score)))
+                .Where(x => !string.IsNullOrWhiteSpace(x.CompetencyName))
+                .ToList();
+
+            var actionItemTitles = createdItems.Select(i => i.Title).ToList();
+
+            string employeeName;
+            try
+            {
+                var employeeDetail = await _employeeService.GetEmployeeByIdAsync(employeeId);
+                employeeName = employeeDetail?.FullName ?? string.Empty;
+            }
+            catch
+            {
+                employeeName = string.Empty;
+            }
+
+            return await _llmReportService.GenerateActionPlanSummaryAsync(
+                employeeName, features.Department, features.JobRole, competencyScores, actionItemTitles)
+                ?? string.Empty;
+        }
+        catch
+        {
+            // Summary is non-critical — keep the plan, drop the summary.
+            return string.Empty;
+        }
+    }
 
     // Maps a 1-based ML rank to a priority tier: the top third of recommendations is High,
     // the middle third Medium, the rest Low. Rank 1 is the weakest competency / most-needed action.

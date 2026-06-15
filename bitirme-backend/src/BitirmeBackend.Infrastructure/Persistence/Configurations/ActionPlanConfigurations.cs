@@ -11,6 +11,7 @@ public class ActionPlanConfiguration : IEntityTypeConfiguration<ActionPlan>
         b.ToTable("ActionPlans");
         b.HasKey(x => x.Id);
         b.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+        b.Property(x => x.AiSummary).HasColumnType("text");
         b.HasIndex(x => x.EmployeeId);
 
         // Only one active plan per assessment (Draft/Edited/Approved/Sent, not soft-deleted).
