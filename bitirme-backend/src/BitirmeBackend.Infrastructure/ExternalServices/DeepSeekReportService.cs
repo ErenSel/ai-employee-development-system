@@ -61,7 +61,11 @@ public class DeepSeekReportService : ILlmReportService
                 new { role = "user",   content = userPrompt }
             },
             max_tokens = maxTokens,
-            temperature = 0.7
+            temperature = 0.7,
+            // deepseek-v4-flash enables thinking mode by default, which puts the answer
+            // in "reasoning_content" and leaves "content" empty. Disable it so the text
+            // comes back in "content". (We also read reasoning_content as a fallback.)
+            thinking = new { type = "disabled" }
         };
 
         try
@@ -151,11 +155,23 @@ Türkçe yaz. 3-4 kısa paragraf. Başlık ekleme, direkt metne gir.";
         try
         {
             using var doc = JsonDocument.Parse(responseJson);
-            var content = doc.RootElement
+            var message = doc.RootElement
                 .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
+                .GetProperty("message");
+
+            var content = message.TryGetProperty("content", out var contentEl)
+                ? contentEl.GetString()
+                : null;
+
+            // Fallback: thinking mode puts the answer in "reasoning_content" and leaves
+            // "content" empty. Read it if the main content is empty.
+            if (string.IsNullOrWhiteSpace(content) &&
+                message.TryGetProperty("reasoning_content", out var reasoningEl))
+            {
+                content = reasoningEl.GetString();
+                if (!string.IsNullOrWhiteSpace(content))
+                    _logger.LogInformation("DeepSeek content boş — reasoning_content alanına geçildi.");
+            }
 
             return content?.Trim() ?? string.Empty;
         }
