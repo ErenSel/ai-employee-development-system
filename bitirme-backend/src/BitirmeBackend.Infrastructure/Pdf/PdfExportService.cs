@@ -108,35 +108,23 @@ public class PdfExportService : IPdfExportService
         var summaryText = await _llmReportService.GenerateActionPlanSummaryAsync(
             employeeName, department, jobRole, competencyScores, actionItemTitles);
 
+        // Single timestamp shared by every page footer for consistency
+        var generatedAt = DateTime.UtcNow;
+
+        // Explicit pagination: page 1 carries the intro layout + first item,
+        // every subsequent page holds exactly 4 items. Each card uses ShowEntire()
+        // so it is never split internally across a page boundary.
+        var firstItem  = items.Count > 0 ? items[0] : null;
+        var laterItems = items.Skip(1).ToList();
+
         var pdfBytes = Document.Create(container =>
         {
+            // ── PAGE 1 — intro layout + first item only ──────────────────────
             container.Page(page =>
             {
-                page.Size(PageSizes.A4);
-                page.Margin(0); // full-bleed header/footer; inner padding applied manually
-                page.DefaultTextStyle(t => t.FontFamily("Noto Sans").FontSize(10).FontColor(TextDark));
+                ConfigurePage(page);
+                page.Header().Element(c => PageHeader(c, employeeName, cycleName));
 
-                // ── HEADER (repeats every page) ─────────────────────────────
-                page.Header().Background(Primary).PaddingHorizontal(40).PaddingVertical(16).Row(row =>
-                {
-                    row.RelativeItem().Column(col =>
-                    {
-                        col.Item().Text("Kişisel Gelişim Aksiyon Planı")
-                            .FontSize(18).Bold().FontColor(Colors.White);
-                        col.Item().PaddingTop(2).Text("Bireysel Yetkinlik Geliştirme Raporu")
-                            .FontSize(9).FontColor("#AFC4D9");
-                    });
-
-                    row.ConstantItem(170).AlignRight().Column(col =>
-                    {
-                        col.Item().AlignRight().Text(employeeName)
-                            .FontSize(11).Bold().FontColor(Colors.White);
-                        col.Item().AlignRight().Text(cycleName)
-                            .FontSize(9).FontColor("#AFC4D9");
-                    });
-                });
-
-                // ── CONTENT ─────────────────────────────────────────────────
                 page.Content().PaddingHorizontal(40).PaddingVertical(18).Column(col =>
                 {
                     // Employee info card
@@ -172,7 +160,7 @@ public class PdfExportService : IPdfExportService
                             .FontSize(14).Bold().FontColor(Primary);
                     });
 
-                    if (items.Count == 0)
+                    if (firstItem is null)
                     {
                         col.Item().PaddingTop(8).Background(SurfaceLt).Padding(16)
                             .Text("Bu plana ait aktif aksiyon bulunmuyor.")
@@ -180,42 +168,100 @@ public class PdfExportService : IPdfExportService
                     }
                     else
                     {
-                        int index = 1;
-                        foreach (var item in items)
-                        {
-                            taskMap.TryGetValue(item.Id, out var empTask);
-                            var captured = item;
-                            var capturedTask = empTask;
-                            var n = index++;
-                            col.Item().PaddingBottom(12).Element(c => ActionCard(c, n, captured, capturedTask));
-                        }
+                        taskMap.TryGetValue(firstItem.Id, out var firstTask);
+                        col.Item().PaddingBottom(12).ShowEntire()
+                            .Element(c => ActionCard(c, 1, firstItem, firstTask));
                     }
                 });
 
-                // ── FOOTER (repeats every page) ─────────────────────────────
-                page.Footer().BorderTop(1).BorderColor(Border).PaddingHorizontal(40).PaddingVertical(8).Row(row =>
+                page.Footer().Element(c => PageFooter(c, generatedAt));
+            });
+
+            // ── PAGES 2+ — exactly 4 items per page ──────────────────────────
+            for (int offset = 0; offset < laterItems.Count; offset += 4)
+            {
+                var group       = laterItems.Skip(offset).Take(4).ToList();
+                var firstNumber = offset + 2; // continuous numbering after the page-1 item (#1)
+
+                container.Page(page =>
                 {
-                    row.RelativeItem().Column(c =>
+                    ConfigurePage(page);
+                    page.Header().Element(c => PageHeader(c, employeeName, cycleName));
+
+                    page.Content().PaddingHorizontal(40).PaddingVertical(18).Column(col =>
                     {
-                        c.Item().Text($"Oluşturulma: {DateTime.UtcNow:dd.MM.yyyy HH:mm} (UTC)")
-                            .FontSize(8).FontColor(TextMuted);
-                        c.Item().Text("Bu belge gizlidir ve yalnızca ilgili çalışan ve yöneticisi için hazırlanmıştır.")
-                            .FontSize(8).FontColor(TextMuted);
+                        int n = firstNumber;
+                        foreach (var item in group)
+                        {
+                            taskMap.TryGetValue(item.Id, out var empTask);
+                            var captured     = item;
+                            var capturedTask = empTask;
+                            var num          = n++;
+                            col.Item().PaddingBottom(12).ShowEntire()
+                                .Element(c => ActionCard(c, num, captured, capturedTask));
+                        }
                     });
 
-                    row.ConstantItem(70).AlignRight().AlignBottom().Text(txt =>
-                    {
-                        txt.DefaultTextStyle(t => t.FontSize(8).FontColor(TextMuted));
-                        txt.Span("Sayfa ");
-                        txt.CurrentPageNumber();
-                        txt.Span(" / ");
-                        txt.TotalPages();
-                    });
+                    page.Footer().Element(c => PageFooter(c, generatedAt));
                 });
-            });
+            }
         }).GeneratePdf();
 
         return pdfBytes;
+    }
+
+    // ── Page scaffolding (shared across all explicit pages) ─────────────────────
+
+    private static void ConfigurePage(PageDescriptor page)
+    {
+        page.Size(PageSizes.A4);
+        page.Margin(0); // full-bleed header/footer; inner padding applied manually
+        page.DefaultTextStyle(t => t.FontFamily("Noto Sans").FontSize(10).FontColor(TextDark));
+    }
+
+    private void PageHeader(IContainer container, string employeeName, string cycleName)
+    {
+        container.Background(Primary).PaddingHorizontal(40).PaddingVertical(16).Row(row =>
+        {
+            row.RelativeItem().Column(col =>
+            {
+                col.Item().Text("Kişisel Gelişim Aksiyon Planı")
+                    .FontSize(18).Bold().FontColor(Colors.White);
+                col.Item().PaddingTop(2).Text("Bireysel Yetkinlik Geliştirme Raporu")
+                    .FontSize(9).FontColor("#AFC4D9");
+            });
+
+            row.ConstantItem(170).AlignRight().Column(col =>
+            {
+                col.Item().AlignRight().Text(employeeName)
+                    .FontSize(11).Bold().FontColor(Colors.White);
+                col.Item().AlignRight().Text(cycleName)
+                    .FontSize(9).FontColor("#AFC4D9");
+            });
+        });
+    }
+
+    private void PageFooter(IContainer container, DateTime generatedAt)
+    {
+        container.BorderTop(1).BorderColor(Border).PaddingHorizontal(40).PaddingVertical(8).Row(row =>
+        {
+            row.RelativeItem().Column(c =>
+            {
+                c.Item().Text($"Oluşturulma: {generatedAt:dd.MM.yyyy HH:mm} (UTC)")
+                    .FontSize(8).FontColor(TextMuted);
+                c.Item().Text("Bu belge gizlidir ve yalnızca ilgili çalışan ve yöneticisi için hazırlanmıştır.")
+                    .FontSize(8).FontColor(TextMuted);
+            });
+
+            row.ConstantItem(70).AlignRight().AlignBottom().Text(txt =>
+            {
+                txt.DefaultTextStyle(t => t.FontSize(8).FontColor(TextMuted));
+                txt.Span("Sayfa ");
+                txt.CurrentPageNumber();
+                txt.Span(" / ");
+                txt.TotalPages();
+            });
+        });
     }
 
     // ── Composite sections ─────────────────────────────────────────────────────
