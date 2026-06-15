@@ -48,7 +48,7 @@ public class DeepSeekReportService : ILlmReportService
         }
 
         var model = _configuration["DeepSeek:Model"] ?? "deepseek-v4-flash";
-        var maxTokens = int.TryParse(_configuration["DeepSeek:MaxTokens"], out var mt) ? mt : 600;
+        var maxTokens = _configuration.GetValue<int>("DeepSeek:MaxTokens", 1000);
 
         var userPrompt = BuildUserPrompt(employeeName, department, jobRole, competencyScores, actionItemTitles);
 
