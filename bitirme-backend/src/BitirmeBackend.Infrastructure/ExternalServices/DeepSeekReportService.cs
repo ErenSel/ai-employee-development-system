@@ -39,6 +39,7 @@ public class DeepSeekReportService : ILlmReportService
         List<string> actionItemTitles)
     {
         var apiKey = _configuration["DeepSeek:ApiKey"];
+        _logger.LogInformation("DeepSeek ApiKey configured: {HasKey}", !string.IsNullOrEmpty(apiKey));
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             _logger.LogWarning(
@@ -79,17 +80,22 @@ public class DeepSeekReportService : ILlmReportService
                 model, _http.BaseAddress);
 
             using var response = await _http.SendAsync(request);
+
+            // Log status + raw body before doing anything else so we can diagnose
+            // empty/unexpected responses.
+            var rawContent = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("DeepSeek response status: {Status}", response.StatusCode);
+            _logger.LogInformation("DeepSeek raw response: {Raw}", rawContent);
+
             if (!response.IsSuccessStatusCode)
             {
-                var errorBody = await response.Content.ReadAsStringAsync();
                 _logger.LogError(
                     "DeepSeek isteği başarısız oldu. Status={Status}, Body={Body}",
-                    response.StatusCode, errorBody);
+                    response.StatusCode, rawContent);
                 return string.Empty;
             }
 
-            var responseJson = await response.Content.ReadAsStringAsync();
-            var summary = ParseContent(responseJson);
+            var summary = ParseContent(rawContent);
 
             _logger.LogInformation("DeepSeek yanıtı alındı, {Length} karakter", summary.Length);
             return summary;
@@ -155,7 +161,7 @@ Türkçe yaz. 3-4 kısa paragraf. Başlık ekleme, direkt metne gir.";
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "DeepSeek yanıtı ayrıştırılamadı.");
+            _logger.LogError(ex, "DeepSeek yanıtı ayrıştırılamadı. Raw={Raw}", responseJson);
             return string.Empty;
         }
     }
